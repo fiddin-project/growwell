@@ -1,0 +1,85 @@
+const prisma = require('../../lib/prisma')
+const authenticate = require('../../middleware/authenticate')
+const requireRole = require('../../middleware/requireRole')
+const validateIdParam = require('../../middleware/validateIdParam')
+const ROLES = require('../../lib/roles')
+
+async function routes(fastify, opts) {
+  fastify.get('/api/pengasuh/anak', { preHandler: [authenticate, requireRole(ROLES.PENGASUH)] }, async (req, reply) => {
+    try {
+      const anak = await prisma.anak.findMany({
+        where: { created_by: req.user.id },
+        orderBy: { created_at: 'desc' },
+      })
+      return reply.send(anak)
+    } catch (err) {
+      return reply.status(500).send({ error: 'Gagal mengambil data anak' })
+    }
+  })
+
+  fastify.post('/api/pengasuh/anak', { preHandler: [authenticate, requireRole(ROLES.PENGASUH)] }, async (req, reply) => {
+    try {
+      const { nama, tanggal_lahir, jenis_kelamin } = req.body
+
+      if (!nama || !tanggal_lahir || !jenis_kelamin) {
+        return reply.status(400).send({ error: 'nama, tanggal_lahir, dan jenis_kelamin wajib diisi' })
+      }
+
+      if (!['L', 'P'].includes(jenis_kelamin)) {
+        return reply.status(400).send({ error: 'jenis_kelamin harus L atau P' })
+      }
+
+      const anak = await prisma.anak.create({
+        data: {
+          nama,
+          tanggal_lahir: new Date(tanggal_lahir),
+          jenis_kelamin,
+          created_by: req.user.id,
+          created_by_admin: false,
+        },
+      })
+
+      return reply.status(201).send(anak)
+    } catch (err) {
+      return reply.status(500).send({ error: 'Gagal menambahkan data anak' })
+    }
+  })
+
+  fastify.put('/api/pengasuh/anak/:id', { preHandler: [authenticate, requireRole(ROLES.PENGASUH), validateIdParam] }, async (req, reply) => {
+    try {
+      const { id } = req.params
+      const { nama, tanggal_lahir, jenis_kelamin } = req.body
+
+      const existing = await prisma.anak.findUnique({ where: { id: parseInt(id) } })
+      if (!existing) {
+        return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
+      }
+      if (existing.created_by !== req.user.id) {
+        return reply.status(403).send({ error: 'Akses ditolak' })
+      }
+
+
+
+      const updateData = {}
+      if (nama !== undefined) updateData.nama = nama
+      if (tanggal_lahir !== undefined) updateData.tanggal_lahir = new Date(tanggal_lahir)
+      if (jenis_kelamin !== undefined) {
+        if (!['L', 'P'].includes(jenis_kelamin)) {
+          return reply.status(400).send({ error: 'jenis_kelamin harus L atau P' })
+        }
+        updateData.jenis_kelamin = jenis_kelamin
+      }
+
+      const anak = await prisma.anak.update({
+        where: { id: parseInt(id) },
+        data: updateData,
+      })
+
+      return reply.send(anak)
+    } catch (err) {
+      return reply.status(500).send({ error: 'Gagal memperbarui data anak' })
+    }
+  })
+}
+
+module.exports = routes

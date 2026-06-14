@@ -1,0 +1,153 @@
+const prisma = require('../../lib/prisma')
+const bcrypt = require('bcryptjs')
+const authenticate = require('../../middleware/authenticate')
+const requireRole = require('../../middleware/requireRole')
+const validateIdParam = require('../../middleware/validateIdParam')
+const ROLES = require('../../lib/roles')
+
+async function routes(fastify, opts) {
+  fastify.get(
+    '/api/admin/users',
+    { preHandler: [authenticate, requireRole(ROLES.ADMIN)] },
+    async (req, reply) => {
+      try {
+        const { search, role, page = 1, limit = 100 } = req.query
+        const skip = (parseInt(page) - 1) * parseInt(limit)
+        const take = parseInt(limit)
+
+        const where = {}
+        if (role) where.role = role
+        if (search) {
+          where.OR = [
+            { username: { contains: search } },
+            { nama_lengkap: { contains: search } },
+          ]
+        }
+
+        const [users, total] = await Promise.all([
+          prisma.user.findMany({
+            where,
+            select: { id: true, username: true, nama_lengkap: true, role: true, created_at: true },
+            skip,
+            take,
+          }),
+          prisma.user.count({ where }),
+        ])
+
+        return reply.send({ data: users, total, page: parseInt(page), limit: take })
+      } catch (err) {
+        return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
+      }
+    }
+  )
+
+  fastify.get(
+    '/api/admin/users/:id',
+    { preHandler: [authenticate, requireRole(ROLES.ADMIN), validateIdParam] },
+    async (req, reply) => {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: req.params.id },
+          select: { id: true, username: true, nama_lengkap: true, role: true, created_at: true },
+        })
+        if (!user) {
+          return reply.status(404).send({ error: 'User tidak ditemukan' })
+        }
+        return reply.send(user)
+      } catch (err) {
+        return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
+      }
+    }
+  )
+
+  fastify.post(
+    '/api/admin/users',
+    { preHandler: [authenticate, requireRole(ROLES.ADMIN)] },
+    async (req, reply) => {
+      try {
+        const { username, nama_lengkap, password } = req.body
+        if (!username || !nama_lengkap || !password) {
+          return reply.status(400).send({ error: 'username, nama_lengkap, dan password wajib diisi' })
+        }
+
+        const existing = await prisma.user.findUnique({ where: { username } })
+        if (existing) {
+          return reply.status(400).send({ error: 'Username sudah digunakan' })
+        }
+
+        const password_hash = await bcrypt.hash(password, 10)
+        const user = await prisma.user.create({
+          data: { username, nama_lengkap, password_hash, role: ROLES.PENGASUH },
+          select: { id: true, username: true, nama_lengkap: true, role: true, created_at: true },
+        })
+
+        return reply.status(201).send(user)
+      } catch (err) {
+        return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
+      }
+    }
+  )
+
+  fastify.put(
+    '/api/admin/users/:id',
+    { preHandler: [authenticate, requireRole(ROLES.ADMIN), validateIdParam] },
+    async (req, reply) => {
+      try {
+        const id = req.params.id
+        const existing = await prisma.user.findUnique({ where: { id } })
+        if (!existing) {
+          return reply.status(404).send({ error: 'User tidak ditemukan' })
+        }
+
+        const data = {}
+        if (req.body.nama_lengkap) data.nama_lengkap = req.body.nama_lengkap
+        if (req.body.username) {
+          const dup = await prisma.user.findFirst({ where: { username: req.body.username, id: { not: id } } })
+          if (dup) {
+            return reply.status(400).send({ error: 'Username sudah digunakan' })
+          }
+          data.username = req.body.username
+        }
+        if (req.body.password) {
+          data.password_hash = await bcrypt.hash(req.body.password, 10)
+        }
+
+        const user = await prisma.user.update({
+          where: { id },
+          data,
+          select: { id: true, username: true, nama_lengkap: true, role: true, created_at: true },
+        })
+
+        return reply.status(200).send(user)
+      } catch (err) {
+        return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
+      }
+    }
+  )
+
+  fastify.delete(
+    '/api/admin/users/:id',
+    { preHandler: [authenticate, requireRole(ROLES.ADMIN), validateIdParam] },
+    async (req, reply) => {
+      try {
+        const id = req.params.id
+
+        const existing = await prisma.user.findUnique({ where: { id } })
+        if (!existing) {
+          return reply.status(404).send({ error: 'User tidak ditemukan' })
+        }
+
+        if (id === Number(req.user.id)) {
+          return reply.status(400).send({ error: 'Tidak dapat menghapus akun Anda sendiri' })
+        }
+
+        await prisma.user.delete({ where: { id } })
+        return reply.send({ message: 'User berhasil dihapus' })
+      } catch (err) {
+        return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
+      }
+    }
+  )
+}
+
+module.exports = routes

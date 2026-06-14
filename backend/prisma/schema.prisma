@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int        @id @default(autoincrement())
+  username      String     @unique @db.VarChar(50)
+  password_hash String     @db.VarChar(255)
+  nama_lengkap  String     @db.VarChar(100)
+  role          String     @db.VarChar(10)
+  created_at    DateTime   @default(now())
+  skrining      Skrining[]
+  anak          Anak[]
+}
+
+model Anak {
+  id              Int        @id @default(autoincrement())
+  nama            String     @db.VarChar(100)
+  tanggal_lahir   DateTime   @db.Date
+  jenis_kelamin   String     @db.VarChar(1)
+  created_by      Int?
+  created_by_admin Boolean   @default(false)
+  created_at      DateTime   @default(now())
+  skrining        Skrining[]
+  pembuat         User?      @relation(fields: [created_by], references: [id], onDelete: SetNull)
+}
+
+model Skala {
+  id_skala    String       @id @db.VarChar(10)
+  nama_skala  String       @db.VarChar(100)
+  nama_skala_en String     @db.VarChar(100)
+  pertanyaan  Pertanyaan[]
+  ambangBatas AmbangBatas[]
+  hasilSkala  HasilSkala[]
+}
+
+model Pertanyaan {
+  id                Int      @id @default(autoincrement())
+  urutan            Int      @default(0)
+  teks_pertanyaan   String   @db.Text
+  teks_pertanyaan_en String  @db.Text
+  id_skala          String   @db.VarChar(10)
+  skor_tidak_benar  Int
+  skor_agak_benar   Int
+  skor_selalu_benar Int
+  skala             Skala    @relation(fields: [id_skala], references: [id_skala])
+  jawaban           Jawaban[]
+}
+
+model AmbangBatas {
+  id                  Int    @id @default(autoincrement())
+  id_skala            String? @db.VarChar(10)
+  batas_normal_max    Int
+  batas_borderline_max Int
+  is_reversed         Boolean @default(false)
+  skala               Skala?  @relation(fields: [id_skala], references: [id_skala])
+}
+
+model Skrining {
+  id              Int        @id @default(autoincrement())
+  anak_id         Int
+  pengasuh_id     Int
+  tanggal_skrining DateTime  @default(now())
+  total_score     Int
+  kategori_total  String     @db.VarChar(20)
+  anak            Anak       @relation(fields: [anak_id], references: [id], onDelete: Restrict)
+  pengasuh        User       @relation(fields: [pengasuh_id], references: [id], onDelete: Restrict)
+  hasilSkala      HasilSkala[]
+  jawaban         Jawaban[]
+}
+
+model HasilSkala {
+  id          Int      @id @default(autoincrement())
+  skrining_id Int
+  id_skala    String   @db.VarChar(10)
+  skor        Int
+  kategori    String   @db.VarChar(20)
+  skrining    Skrining @relation(fields: [skrining_id], references: [id], onDelete: Cascade)
+  skala       Skala    @relation(fields: [id_skala], references: [id_skala], onDelete: Restrict)
+}
+
+model Jawaban {
+  id             Int        @id @default(autoincrement())
+  skrining_id    Int
+  id_pertanyaan  Int
+  jawaban        String     @db.VarChar(20)
+  skor_diberikan Int
+  skrining       Skrining   @relation(fields: [skrining_id], references: [id], onDelete: Cascade)
+  pertanyaan     Pertanyaan @relation(fields: [id_pertanyaan], references: [id], onDelete: Restrict)
+}
+
+model Edukasi {
+  id           Int      @id @default(autoincrement())
+  judul        String   @db.VarChar(255)
+  judul_en     String   @db.VarChar(255)
+  deskripsi    String   @db.Text
+  deskripsi_en String   @db.Text
+  tipe         String   @db.VarChar(10)
+  url_atau_file String  @db.VarChar(500)
+  created_at   DateTime @default(now())
+  is_active    Boolean  @default(true)
+}
+
+model Psikolog {
+  id              Int    @id @default(autoincrement())
+  nama            String @db.VarChar(100)
+  spesialisasi    String @db.VarChar(200)
+  spesialisasi_en String @db.VarChar(200)
+  nomor_whatsapp  String @db.VarChar(20)
+  pesan_default   String @db.Text
+  pesan_default_en String @db.Text
+  is_active       Boolean @default(true)
+}
