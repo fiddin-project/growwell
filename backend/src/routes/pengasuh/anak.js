@@ -8,7 +8,12 @@ async function routes(fastify, opts) {
   fastify.get('/api/pengasuh/anak', { preHandler: [authenticate, requireRole(ROLES.PENGASUH)] }, async (req, reply) => {
     try {
       const anak = await prisma.anak.findMany({
-        where: { created_by: req.user.id },
+        where: {
+          OR: [
+            { created_by: req.user.id },
+            { created_by_admin: true }
+          ]
+        },
         orderBy: { created_at: 'desc' },
       })
       return reply.send(anak)
@@ -23,6 +28,10 @@ async function routes(fastify, opts) {
 
       if (!nama || !tanggal_lahir || !jenis_kelamin) {
         return reply.status(400).send({ error: 'nama, tanggal_lahir, dan jenis_kelamin wajib diisi' })
+      }
+
+      if (typeof nama !== 'string' || nama.length < 1 || nama.length > 100) {
+        return reply.status(400).send({ error: 'nama harus 1-100 karakter' })
       }
 
       if (!['L', 'P'].includes(jenis_kelamin)) {
@@ -78,6 +87,30 @@ async function routes(fastify, opts) {
       return reply.send(anak)
     } catch (err) {
       return reply.status(500).send({ error: 'Gagal memperbarui data anak' })
+    }
+  })
+
+  fastify.delete('/api/pengasuh/anak/:id', { preHandler: [authenticate, requireRole(ROLES.PENGASUH), validateIdParam] }, async (req, reply) => {
+    try {
+      const { id } = req.params
+
+      const existing = await prisma.anak.findUnique({ where: { id: parseInt(id) } })
+      if (!existing) {
+        return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
+      }
+      if (existing.created_by !== req.user.id) {
+        return reply.status(403).send({ error: 'Akses ditolak' })
+      }
+
+      const skriningCount = await prisma.skrining.count({ where: { anak_id: parseInt(id) } })
+      if (skriningCount > 0) {
+        return reply.status(400).send({ error: 'Tidak dapat menghapus data anak yang sudah memiliki riwayat skrining' })
+      }
+
+      await prisma.anak.delete({ where: { id: parseInt(id) } })
+      return reply.send({ message: 'Data anak berhasil dihapus' })
+    } catch (err) {
+      return reply.status(500).send({ error: 'Gagal menghapus data anak' })
     }
   })
 }

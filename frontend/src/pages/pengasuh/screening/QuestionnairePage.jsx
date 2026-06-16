@@ -42,7 +42,8 @@ export default function QuestionnairePage() {
           if (!cancelled) setQuestions(data)
           return
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load questions:', err)
         if (!cancelled) setQuestions(mockPertanyaan)
       }
     }
@@ -56,7 +57,8 @@ export default function QuestionnairePage() {
       try {
         const data = await api.getChildren()
         if (Array.isArray(data) && !cancelled) setChildren(data)
-      } catch {
+      } catch (err) {
+        console.error('Failed to load children:', err)
         if (!cancelled) setChildren(mockAnak)
       }
     }
@@ -90,7 +92,8 @@ export default function QuestionnairePage() {
       const result = await api.submitScreening(payload)
       toast.success(t('toast_created'))
       navigate(`/pengasuh/screening/${childId}/result/${result.id}`)
-    } catch {
+    } catch (err) {
+      console.error('Failed to submit screening:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setLoading(false)

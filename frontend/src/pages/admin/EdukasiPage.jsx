@@ -94,7 +94,8 @@ export default function EdukasiPage() {
         toast.success(t('toast_created'))
       }
       setModalOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to save education:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setSaveLoading(false)
@@ -107,7 +108,8 @@ export default function EdukasiPage() {
       await api.deleteEdukasi(deleteTarget.id)
       setEdukasi((prev) => prev.filter((e) => e.id !== deleteTarget.id))
       toast.success(t('toast_deleted'))
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete education:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setDeleteLoading(false)

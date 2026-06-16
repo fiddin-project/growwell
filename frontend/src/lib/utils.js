@@ -1,5 +1,3 @@
-import { mockSkala } from '../data/mockData'
-
 export const formatDate = (dateStr) => {
   if (!dateStr) return '-'
   return new Date(dateStr).toISOString().split('T')[0]
@@ -20,11 +18,8 @@ export const getCategoryColor = (kategori) => {
   }
 }
 
-export const getSkalaName = (idSkala, i18n) => {
-  const skala = mockSkala.find((s) => s.id_skala === idSkala)
+export const getSkalaName = (idSkala, skalaList, i18n) => {
+  const skala = skalaList.find((s) => s.id_skala === idSkala)
   if (!skala) return idSkala
   return i18n.language === 'id' ? skala.nama_skala : skala.nama_skala_en
 }
-
-export const getField = (item, field, i18n) =>
-  i18n.language === 'id' ? item[field] : item[`${field}_en`]

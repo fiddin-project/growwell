@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
-import { mockAnak, mockSkrining } from '../../data/mockData'
+import { mockAnak, mockSkrining, mockSkala, mockAmbangBatas } from '../../data/mockData'
 import { calculateAge } from '../../lib/scoring'
 import * as api from '../../api/pengasuh'
 import DataTable from '../../components/ui/DataTable'
@@ -46,6 +46,8 @@ export default function MonitoringDetailPage() {
   const [child, setChild] = useState(null)
   const [screenings, setScreenings] = useState([])
   const [selectedScreening, setSelectedScreening] = useState(null)
+  const [skalaList, setSkalaList] = useState(mockSkala)
+  const [thresholds, setThresholds] = useState(mockAmbangBatas)
 
   useEffect(() => {
     let cancelled = false
@@ -62,7 +64,8 @@ export default function MonitoringDetailPage() {
             return
           }
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load monitoring data:', err)
         const fallbackChild = mockAnak.find((a) => a.id === parseInt(childId))
         if (fallbackChild && !cancelled) setChild(fallbackChild)
 
@@ -70,6 +73,22 @@ export default function MonitoringDetailPage() {
           .filter((s) => s.anak_id === parseInt(childId))
           .sort((a, b) => new Date(a.tanggal_skrining) - new Date(b.tanggal_skrining))
         if (!cancelled) setScreenings(fallbackScreenings)
+      }
+
+      try {
+        const skala = await api.getSkala()
+        if (skala && !cancelled) setSkalaList(skala)
+      } catch (err) {
+        console.error('Failed to load skala:', err)
+        // keep mockSkala fallback
+      }
+
+      try {
+        const ambang = await import('../../api/admin').then((m) => m.getAmbangBatas())
+        if (ambang && !cancelled) setThresholds(ambang)
+      } catch (err) {
+        console.error('Failed to load thresholds:', err)
+        // keep mockAmbangBatas fallback
       }
     }
     fetchMonitoring().finally(() => { if (!cancelled) setLoading(false) })
@@ -85,6 +104,11 @@ export default function MonitoringDetailPage() {
       })),
     [screenings, i18n.language]
   )
+
+  const totalThreshold = useMemo(() => {
+    const t = thresholds.find((th) => th.id_skala === null)
+    return t || { batas_normal_max: 13, batas_borderline_max: 16 }
+  }, [thresholds])
 
   const columns = [
     {
@@ -154,7 +178,7 @@ export default function MonitoringDetailPage() {
       ) : (
         <>
           <div className="chart-container mb-6">
-            <h2 className="text-subhead mb-4">{t('monitoring_score_trend')}</h2>
+            <h2 className="text-subhead mb-4" style={{ color: '#8B6914' }}>{t('monitoring_score_trend')}</h2>
             {chartData.length > 0 ? (
               <div aria-label={t('monitoring_score_trend')}>
                 <ResponsiveContainer width="100%" height={280}>
@@ -163,8 +187,8 @@ export default function MonitoringDetailPage() {
                     <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#dedee5" />
                     <YAxis domain={[0, 40]} tick={{ fontSize: 12 }} stroke="#dedee5" />
                     <Tooltip content={CustomTooltip} />
-                    <ReferenceLine y={13} stroke="rgba(20,158,97,0.3)" strokeDasharray="4 4" strokeWidth={1} />
-                    <ReferenceLine y={19} stroke="rgba(230,126,34,0.3)" strokeDasharray="4 4" strokeWidth={1} />
+                    <ReferenceLine y={totalThreshold.batas_normal_max} stroke="rgba(20,158,97,0.3)" strokeDasharray="4 4" strokeWidth={1} />
+                    <ReferenceLine y={totalThreshold.batas_borderline_max} stroke="rgba(230,126,34,0.3)" strokeDasharray="4 4" strokeWidth={1} />
                     <Line
                       type="monotone"
                       dataKey="score"
@@ -182,22 +206,22 @@ export default function MonitoringDetailPage() {
             <div className="flex items-center gap-4 mt-3 text-fine-print">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 bg-green-500" />
-                <span>{t('normal')} (0-13)</span>
+                <span>{t('normal')} (0-{totalThreshold.batas_normal_max})</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 bg-amber-500" />
-                <span>{t('borderline')} (14-19)</span>
+                <span>{t('borderline')} ({totalThreshold.batas_normal_max + 1}-{totalThreshold.batas_borderline_max})</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 bg-red-600" />
-                <span>{t('abnormal')} (20-40)</span>
+                <span>{t('abnormal')} ({totalThreshold.batas_borderline_max + 1}-40)</span>
               </div>
             </div>
           </div>
 
           <div className="table-container mb-6">
             <div className="p-6">
-              <h2 className="text-subhead mb-4">{t('monitoring_history')}</h2>
+              <h2 className="text-subhead mb-4" style={{ color: '#8B6914' }}>{t('monitoring_history')}</h2>
               <DataTable
                 columns={columns}
                 data={screenings}
@@ -244,7 +268,7 @@ export default function MonitoringDetailPage() {
               <tbody>
                 {selectedScreening.per_skala.map((ps) => (
                   <tr key={ps.id_skala} className="border-b border-divider">
-                    <td className="py-2">{getSkalaName(ps.id_skala, i18n)}</td>
+                    <td className="py-2">{getSkalaName(ps.id_skala, skalaList, i18n)}</td>
                     <td className="py-2 text-center font-medium">{ps.skor}</td>
                     <td className="py-2 text-right">
                       <Badge variant={ps.kategori}>{t(ps.kategori.toLowerCase())}</Badge>

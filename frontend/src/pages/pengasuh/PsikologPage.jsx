@@ -22,7 +22,8 @@ export default function PsikologPage() {
           if (!cancelled) setPsikologList(data)
           return
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load psychologists:', err)
         if (!cancelled) setPsikologList(mockPsikolog)
       }
     }

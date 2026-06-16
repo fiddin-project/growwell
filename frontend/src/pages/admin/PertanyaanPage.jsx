@@ -80,7 +80,8 @@ export default function PertanyaanPage() {
         toast.success(t('toast_created'))
       }
       setModalOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to save question:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setSaveLoading(false)
@@ -93,7 +94,8 @@ export default function PertanyaanPage() {
       await api.deletePertanyaan(deleteTarget.id)
       setPertanyaan((prev) => prev.filter((p) => p.id !== deleteTarget.id))
       toast.success(t('toast_deleted'))
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete question:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setDeleteLoading(false)

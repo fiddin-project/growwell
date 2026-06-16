@@ -8,6 +8,14 @@ export function createChild(data) {
   return client.post('/pengasuh/anak', data).then((r) => r.data)
 }
 
+export function deleteChild(id) {
+  return client.delete(`/pengasuh/anak/${id}`).then((r) => r.data)
+}
+
+export function getSkala() {
+  return client.get('/pengasuh/skala').then((r) => r.data)
+}
+
 export function getPertanyaan(idSkala) {
   const params = idSkala ? { id_skala: idSkala } : {}
   return client.get('/pengasuh/pertanyaan', { params }).then((r) => r.data)

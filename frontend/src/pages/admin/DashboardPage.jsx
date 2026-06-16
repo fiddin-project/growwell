@@ -142,7 +142,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="chart-container">
-          <h2 className="font-headline-md text-headline-md text-on-surface font-semibold mb-4">{t('screenings_per_month')}</h2>
+          <h2 className="font-headline-md text-headline-md font-semibold mb-4" style={{ color: '#8B6914' }}>{t('screenings_per_month')}</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={monthlyData} aria-label={t('screenings_per_month')} role="img">
               <CartesianGrid vertical={false} strokeDasharray="0" stroke="rgba(0,67,73,0.08)" />
@@ -155,7 +155,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="chart-container">
-          <h2 className="font-headline-md text-headline-md text-on-surface font-semibold mb-4">{t('category_distribution')}</h2>
+          <h2 className="font-headline-md text-headline-md font-semibold mb-4" style={{ color: '#8B6914' }}>{t('category_distribution')}</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart aria-label={t('category_distribution')} role="img">
               <Pie

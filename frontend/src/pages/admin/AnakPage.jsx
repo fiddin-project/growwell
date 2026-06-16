@@ -86,7 +86,8 @@ export default function AnakPage() {
         toast.success(t('toast_created'))
       }
       setModalOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to save child:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setSaveLoading(false)
@@ -99,7 +100,8 @@ export default function AnakPage() {
       await api.deleteAnak(deleteTarget.id)
       setAnak((prev) => prev.filter((a) => a.id !== deleteTarget.id))
       toast.success(t('toast_deleted'))
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete child:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setDeleteLoading(false)

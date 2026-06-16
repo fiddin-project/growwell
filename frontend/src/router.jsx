@@ -14,7 +14,6 @@ import AdminEdukasiPage from './pages/admin/EdukasiPage'
 import AdminPsikologPage from './pages/admin/PsikologPage'
 import PengasuhDashboardPage from './pages/pengasuh/DashboardPage'
 import ScreeningChildSelectPage from './pages/pengasuh/screening/ChildSelectPage'
-import NewChildPage from './pages/pengasuh/screening/NewChildPage'
 import QuestionnairePage from './pages/pengasuh/screening/QuestionnairePage'
 import ResultPage from './pages/pengasuh/screening/ResultPage'
 import PengasuhEdukasiPage from './pages/pengasuh/EdukasiPage'
@@ -74,7 +73,6 @@ export default function AppRouter() {
         >
           <Route path="dashboard" element={<PengasuhDashboardPage />} />
           <Route path="screening" element={<ScreeningChildSelectPage />} />
-          <Route path="screening/new-child" element={<NewChildPage />} />
           <Route path="screening/:childId" element={<QuestionnairePage />} />
           <Route path="screening/:childId/result/:skriningId" element={<ResultPage />} />
           <Route path="edukasi" element={<PengasuhEdukasiPage />} />

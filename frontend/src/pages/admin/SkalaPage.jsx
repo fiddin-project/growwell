@@ -43,7 +43,8 @@ export default function SkalaPage() {
       if (!controller.signal.aborted) {
         setSkala(Array.isArray(res) ? res : res.data || [])
       }
-    } catch {
+    } catch (err) {
+      console.error('Failed to load scales:', err)
       if (!controller.signal.aborted) {
         toast.error(t('toast_error_api'))
       }
@@ -102,7 +103,8 @@ export default function SkalaPage() {
         toast.success(t('toast_created'))
       }
       setModalOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to save scale:', err)
       if (editingItem) {
         setSkala((prev) =>
           prev.map((s) =>
@@ -127,7 +129,8 @@ export default function SkalaPage() {
       await api.deleteSkala(deleteTarget.id_skala)
       setSkala((prev) => prev.filter((s) => s.id_skala !== deleteTarget.id_skala))
       toast.success(t('toast_deleted'))
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete scale:', err)
       setSkala((prev) => prev.filter((s) => s.id_skala !== deleteTarget.id_skala))
       toast.error(t('toast_error_api'))
     } finally {

@@ -37,7 +37,8 @@ export default function MonitoringSelectPage() {
                     (a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining)
                   )[0]
                 }
-              } catch {
+              } catch (err) {
+                console.error('Failed to load screenings:', err)
                 const fallback = mockSkrining
                   .filter((s) => s.anak_id === child.id)
                   .sort((a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining))
@@ -51,7 +52,8 @@ export default function MonitoringSelectPage() {
           }
           return
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load children:', err)
         const childrenList = mockAnak
         const screeningsMap = {}
         childrenList.forEach((child) => {

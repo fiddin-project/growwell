@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
-import { mockSkrining, mockAnak } from '../../../data/mockData'
+import { mockSkrining, mockAnak, mockSkala } from '../../../data/mockData'
 import * as api from '../../../api/pengasuh'
 import Badge from '../../../components/ui/Badge'
 import Button from '../../../components/ui/Button'
@@ -17,6 +17,7 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(true)
   const [skrining, setSkrining] = useState(null)
   const [child, setChild] = useState(null)
+  const [skalaList, setSkalaList] = useState(mockSkala)
 
   useEffect(() => {
     let cancelled = false
@@ -26,7 +27,8 @@ export default function ResultPage() {
         if (detail && !cancelled) {
           setSkrining(detail)
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load screening detail:', err)
         const found = mockSkrining.find((s) => s.id === parseInt(skriningId))
         if (found && !cancelled) setSkrining(found)
       }
@@ -42,9 +44,18 @@ export default function ResultPage() {
           const mockChild = mockAnak.find((a) => a.id === parseInt(childId))
           if (mockChild && !cancelled) setChild(mockChild)
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load children:', err)
         const mockChild = mockAnak.find((a) => a.id === parseInt(childId))
         if (mockChild && !cancelled) setChild(mockChild)
+      }
+
+      try {
+        const skala = await api.getSkala()
+        if (skala && !cancelled) setSkalaList(skala)
+      } catch (err) {
+        console.error('Failed to load skala:', err)
+        // keep mockSkala fallback
       }
     }
     fetchResult().finally(() => { if (!cancelled) setLoading(false) })
@@ -104,7 +115,7 @@ export default function ResultPage() {
           <tbody>
             {skrining.per_skala.map((ps) => (
               <tr key={ps.id_skala}>
-                <td className="text-body-md">{getSkalaName(ps.id_skala, i18n)}</td>
+                <td className="text-body-md">{getSkalaName(ps.id_skala, skalaList, i18n)}</td>
                 <td className="text-center font-medium text-body-md">{ps.skor}</td>
                 <td className="text-right">
                   <Badge variant={ps.kategori}>{t(ps.kategori.toLowerCase())}</Badge>

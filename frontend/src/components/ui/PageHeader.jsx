@@ -7,7 +7,7 @@ export default function PageHeader({ icon: Icon, title, subtitle, backTo, action
   const navigate = useNavigate()
 
   return (
-    <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 ${gradient ? 'bg-gradient-to-br from-primary-container to-primary -mx-6 -mt-6 px-6 pt-6 pb-7 rounded-b-2xl text-on-primary' : ''}`}>
+    <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 ${gradient ? 'bg-gradient-to-br from-primary-container to-primary -mx-6 -mt-6 px-6 pt-6 pb-7 rounded-b-2xl' : ''}`}>
       <div className="flex items-center gap-4">
         {backTo && (
           <button
@@ -24,9 +24,9 @@ export default function PageHeader({ icon: Icon, title, subtitle, backTo, action
           </div>
         )}
         <div>
-          <h2 className={`font-headline-xl text-headline-xl leading-tight ${gradient ? 'text-on-primary' : 'text-on-surface'}`}>{title}</h2>
+          <h2 className="font-headline-xl text-headline-xl leading-tight" style={gradient ? { color: '#D4A843' } : { color: 'var(--color-on-surface)' }}>{title}</h2>
           {subtitle && (
-            <p className={`font-body-md text-body-md mt-0.5 ${gradient ? 'text-on-primary/80' : 'text-on-surface-variant'}`}>{subtitle}</p>
+            <p className={`font-body-md text-body-md mt-0.5 ${gradient ? 'text-white/80' : 'text-on-surface-variant'}`}>{subtitle}</p>
           )}
         </div>
       </div>

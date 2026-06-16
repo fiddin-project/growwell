@@ -27,6 +27,15 @@ async function routes(fastify, opts) {
         if (!nama || !spesialisasi || !nomor_whatsapp) {
           return reply.status(400).send({ error: 'nama, spesialisasi, dan nomor_whatsapp wajib diisi' })
         }
+        if (typeof nama !== 'string' || nama.length < 2 || nama.length > 100) {
+          return reply.status(400).send({ error: 'nama harus 2-100 karakter' })
+        }
+        if (typeof spesialisasi !== 'string' || spesialisasi.length < 2 || spesialisasi.length > 200) {
+          return reply.status(400).send({ error: 'spesialisasi harus 2-200 karakter' })
+        }
+        if (typeof nomor_whatsapp !== 'string' || !/^\+?\d{8,20}$/.test(nomor_whatsapp)) {
+          return reply.status(400).send({ error: 'nomor_whatsapp tidak valid' })
+        }
         const psikolog = await prisma.psikolog.create({
           data: {
             nama,

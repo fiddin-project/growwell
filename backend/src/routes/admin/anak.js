@@ -30,6 +30,17 @@ async function routes(fastify, opts) {
     async (req, reply) => {
       try {
         const { nama, tanggal_lahir, jenis_kelamin } = req.body
+
+        if (!nama || !tanggal_lahir || !jenis_kelamin) {
+          return reply.status(400).send({ error: 'nama, tanggal_lahir, dan jenis_kelamin wajib diisi' })
+        }
+        if (typeof nama !== 'string' || nama.length < 1 || nama.length > 100) {
+          return reply.status(400).send({ error: 'nama harus 1-100 karakter' })
+        }
+        if (!['L', 'P'].includes(jenis_kelamin)) {
+          return reply.status(400).send({ error: 'jenis_kelamin harus L atau P' })
+        }
+
         const anak = await prisma.anak.create({
           data: {
             nama,

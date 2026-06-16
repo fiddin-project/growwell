@@ -70,6 +70,16 @@ async function routes(fastify, opts) {
           return reply.status(400).send({ error: 'username, nama_lengkap, dan password wajib diisi' })
         }
 
+        if (typeof username !== 'string' || username.length < 3 || username.length > 50) {
+          return reply.status(400).send({ error: 'username harus 3-50 karakter' })
+        }
+        if (typeof nama_lengkap !== 'string' || nama_lengkap.length < 2 || nama_lengkap.length > 100) {
+          return reply.status(400).send({ error: 'nama_lengkap harus 2-100 karakter' })
+        }
+        if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
+          return reply.status(400).send({ error: 'password harus 6-128 karakter' })
+        }
+
         const existing = await prisma.user.findUnique({ where: { username } })
         if (existing) {
           return reply.status(400).send({ error: 'Username sudah digunakan' })

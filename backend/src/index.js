@@ -15,6 +15,10 @@ fastify.register(require('@fastify/cors'), {
   credentials: true,
 })
 
+fastify.register(require('@fastify/helmet'))
+
+fastify.addHook('preHandler', require('./middleware/sanitize'))
+
 fastify.register(require('@fastify/jwt'), {
   secret: process.env.JWT_SECRET,
 })
@@ -44,6 +48,7 @@ fastify.register(require('./routes/admin/edukasi'))
 fastify.register(require('./routes/admin/psikolog'))
 fastify.register(require('./routes/admin/dashboard'))
 fastify.register(require('./routes/pengasuh/anak'))
+fastify.register(require('./routes/pengasuh/skala'))
 fastify.register(require('./routes/pengasuh/pertanyaan'))
 fastify.register(require('./routes/pengasuh/skrining'))
 fastify.register(require('./routes/pengasuh/edukasi'))

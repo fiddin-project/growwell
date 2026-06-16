@@ -7,20 +7,28 @@ import { calculateAge } from '../../../lib/scoring'
 import * as api from '../../../api/pengasuh'
 import toast from 'react-hot-toast'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
-import { Plus, User, User2, CalendarDays, Stethoscope } from 'lucide-react'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
+import Modal from '../../../components/ui/Modal'
+import Input from '../../../components/ui/Input'
+import { Plus, User, User2, CalendarDays, Stethoscope, Trash2 } from 'lucide-react'
 import Button from '../../../components/ui/Button'
 import PageHeader from '../../../components/ui/PageHeader'
 import SearchBar from '../../../components/ui/SearchBar'
 import { formatDate, getCategoryColor } from '../../../lib/utils'
 
 export default function ChildSelectPage() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [children, setChildren] = useState([])
   const [lastScreenings, setLastScreenings] = useState({})
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [form, setForm] = useState({ nama: '', tanggal_lahir: '', jenis_kelamin: 'L' })
+  const [saveLoading, setSaveLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -31,7 +39,8 @@ export default function ChildSelectPage() {
         if (Array.isArray(data)) {
           childrenList = data
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load children:', err)
         childrenList = mockAnak
         toast.error(t('toast_error_api'))
       }
@@ -46,7 +55,8 @@ export default function ChildSelectPage() {
                 (a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining)
               )[0]
             }
-          } catch {
+          } catch (err) {
+            console.error('Failed to load screenings:', err)
             const fallback = mockSkrining
               .filter((s) => s.anak_id === child.id)
               .sort((a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining))
@@ -68,6 +78,51 @@ export default function ChildSelectPage() {
     !search || child.nama.toLowerCase().includes(search.toLowerCase())
   )
 
+  const openCreate = () => {
+    setForm({ nama: '', tanggal_lahir: '', jenis_kelamin: 'L' })
+    setModalOpen(true)
+  }
+
+  const handleSave = async () => {
+    if (!form.nama.trim() || !form.tanggal_lahir) {
+      toast.error(t('fill_all_fields'))
+      return
+    }
+    setSaveLoading(true)
+    try {
+      const created = await api.createChild({
+        nama: form.nama.trim(),
+        tanggal_lahir: form.tanggal_lahir,
+        jenis_kelamin: form.jenis_kelamin,
+        created_by_admin: false,
+      })
+      setChildren((prev) => [created, ...prev])
+      toast.success(t('toast_created'))
+      setModalOpen(false)
+    } catch (err) {
+      console.error('Failed to create child:', err)
+      toast.error(t('toast_error_api'))
+    } finally {
+      setSaveLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleteLoading(true)
+    try {
+      await api.deleteChild(deleteTarget.id)
+      setChildren((prev) => prev.filter((c) => c.id !== deleteTarget.id))
+      toast.success(t('toast_deleted'))
+    } catch (err) {
+      const msg = err?.response?.data?.error || t('toast_error_api')
+      toast.error(msg)
+    } finally {
+      setDeleteLoading(false)
+      setDeleteTarget(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="page-enter">
@@ -75,7 +130,7 @@ export default function ChildSelectPage() {
           icon={Stethoscope}
           title={t('screening_select_child')}
           subtitle={t('pengasuh_screening_subtitle')}
-          action={<Button onClick={() => navigate('/pengasuh/screening/new-child')} className="shrink-0"><Plus size={20} />{t('screening_new_child')}</Button>}
+          action={<Button onClick={openCreate} className="shrink-0"><Plus size={20} />{t('screening_new_child')}</Button>}
           gradient
         />
         <LoadingSpinner fullPage />
@@ -90,7 +145,7 @@ export default function ChildSelectPage() {
           icon={Stethoscope}
           title={t('screening_select_child')}
           subtitle={t('pengasuh_screening_subtitle')}
-          action={<Button onClick={() => navigate('/pengasuh/screening/new-child')} className="shrink-0"><Plus size={20} />{t('screening_new_child')}</Button>}
+          action={<Button onClick={openCreate} className="shrink-0"><Plus size={20} />{t('screening_new_child')}</Button>}
           gradient
         />
         <div className="empty-state">
@@ -109,7 +164,7 @@ export default function ChildSelectPage() {
         icon={Stethoscope}
         title={t('screening_select_child')}
         subtitle={t('pengasuh_screening_subtitle')}
-        action={<Button onClick={() => navigate('/pengasuh/screening/new-child')} className="shrink-0"><Plus size={20} />{t('screening_new_child')}</Button>}
+        action={<Button onClick={openCreate} className="shrink-0"><Plus size={20} />{t('screening_new_child')}</Button>}
         gradient
       />
 
@@ -145,16 +200,94 @@ export default function ChildSelectPage() {
                   </span>
                 )}
               </div>
-              <button
-                className="btn-primary w-full justify-center"
-                onClick={() => navigate(`/pengasuh/screening/${child.id}`)}
-              >
-                {t('screening_start')}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  className="btn-primary flex-1 justify-center"
+                  onClick={() => navigate(`/pengasuh/screening/${child.id}`)}
+                >
+                  {t('screening_start')}
+                </button>
+                <button
+                  className="flex items-center justify-center w-10 rounded-xl border border-outline-variant/40 text-on-surface-variant hover:bg-error/10 hover:text-error hover:border-error/30 transition-colors"
+                  onClick={() => setDeleteTarget(child)}
+                  aria-label={t('delete')}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           )
         })}
       </div>
+
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={t('screening_new_child')}
+        size="lg"
+        footer={
+          <div className="flex flex-col sm:flex-row justify-end gap-3">
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={handleSave} loading={saveLoading}>{t('save')}</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label={t('field_nama_anak')}
+              id="nama"
+              value={form.nama}
+              onChange={(e) => setForm({ ...form, nama: e.target.value })}
+            />
+            <Input
+              label={t('field_tanggal_lahir')}
+              id="tanggal_lahir"
+              type="date"
+              value={form.tanggal_lahir}
+              onChange={(e) => setForm({ ...form, tanggal_lahir: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="label">{t('field_jenis_kelamin')}</label>
+            <div className="flex gap-3 mt-1">
+              <button
+                type="button"
+                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg border transition-colors text-on-surface ${
+                  form.jenis_kelamin === 'L'
+                    ? 'border-primary bg-primary/10 text-primary font-semibold'
+                    : 'border-outline-variant/50 hover:bg-surface-container-low'
+                }`}
+                onClick={() => setForm({ ...form, jenis_kelamin: 'L' })}
+                aria-pressed={form.jenis_kelamin === 'L'}
+              >
+                <span className="font-label-sm text-label-sm">{t('gender_male')}</span>
+              </button>
+              <button
+                type="button"
+                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg border transition-colors text-on-surface ${
+                  form.jenis_kelamin === 'P'
+                    ? 'border-primary bg-primary/10 text-primary font-semibold'
+                    : 'border-outline-variant/50 hover:bg-surface-container-low'
+                }`}
+                onClick={() => setForm({ ...form, jenis_kelamin: 'P' })}
+                aria-pressed={form.jenis_kelamin === 'P'}
+              >
+                <span className="font-label-sm text-label-sm">{t('gender_female')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title={t('delete')}
+        message={t('confirm_delete')}
+        loading={deleteLoading}
+      />
     </div>
   )
 }

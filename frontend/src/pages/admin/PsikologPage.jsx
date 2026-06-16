@@ -70,7 +70,8 @@ export default function PsikologPage() {
         toast.success(t('toast_created'))
       }
       setModalOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to save psychologist:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setSaveLoading(false)
@@ -83,7 +84,8 @@ export default function PsikologPage() {
       await api.deletePsikolog(deleteTarget.id)
       setPsikolog((prev) => prev.filter((p) => p.id !== deleteTarget.id))
       toast.success(t('toast_deleted'))
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete psychologist:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setDeleteLoading(false)

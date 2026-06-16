@@ -30,7 +30,8 @@ export default function EdukasiPage() {
           if (!cancelled) setEdukasiList(data)
           return
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load education:', err)
         if (!cancelled) setEdukasiList(mockEdukasi)
       }
     }

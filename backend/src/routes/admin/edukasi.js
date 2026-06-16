@@ -20,6 +20,9 @@ function parseIsActive(value) {
 }
 
 async function saveUploadedFile(fileData) {
+  if (fileData.mimetype !== 'application/pdf') {
+    throw new Error('Hanya file PDF yang diizinkan')
+  }
   const ext = path.extname(fileData.filename) || '.pdf'
   const filename = crypto.randomUUID() + ext
   const filePath = path.join(uploadDir, filename)
@@ -38,6 +41,20 @@ function deleteOldFile(existing) {
     if (fs.existsSync(oldPath)) {
       fs.unlinkSync(oldPath)
     }
+  }
+}
+
+const ALLOWED_YT = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/
+
+function validateEdukasiUrl(url, tipe) {
+  if (!url) return true
+  if (tipe === 'pdf') return true
+  if (tipe === 'youtube') return ALLOWED_YT.test(url)
+  try {
+    const parsed = new URL(url)
+    return ['http:', 'https:'].includes(parsed.protocol)
+  } catch {
+    return false
   }
 }
 
@@ -77,6 +94,10 @@ async function routes(fastify, opts) {
         if (fileData) {
           fields.url_atau_file = await saveUploadedFile(fileData)
           fields.tipe = 'pdf'
+        }
+
+        if (fields.url_atau_file && !validateEdukasiUrl(fields.url_atau_file, fields.tipe)) {
+          return reply.status(400).send({ error: 'URL tidak valid' })
         }
 
         if (fields.is_active !== undefined) {
@@ -122,6 +143,12 @@ async function routes(fastify, opts) {
           deleteOldFile(existing)
           data.url_atau_file = await saveUploadedFile(fileData)
           data.tipe = 'pdf'
+        }
+
+        const finalTipe = data.tipe || existing.tipe
+        const finalUrl = data.url_atau_file || existing.url_atau_file
+        if (!validateEdukasiUrl(finalUrl, finalTipe)) {
+          return reply.status(400).send({ error: 'URL tidak valid' })
         }
 
         if (data.is_active !== undefined) {

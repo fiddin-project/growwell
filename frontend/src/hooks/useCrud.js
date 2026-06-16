@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import toast from 'react-hot-toast'
 
-export function useCrud({ api, setItems, validate, getId = (item) => item.id, getDisplayName = (item) => item.nama }) {
+export function useCrud({ api, setItems, validate, getId = (item) => item.id }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [form, setForm] = useState({})
@@ -38,7 +38,8 @@ export function useCrud({ api, setItems, validate, getId = (item) => item.id, ge
         toast.success(t('toast_created'))
       }
       setModalOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to save:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setSaveLoading(false)
@@ -51,7 +52,8 @@ export function useCrud({ api, setItems, validate, getId = (item) => item.id, ge
       await api.delete(getId(deleteTarget))
       setItems((prev) => prev.filter((item) => getId(item) !== getId(deleteTarget)))
       toast.success(t('toast_deleted'))
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setDeleteLoading(false)

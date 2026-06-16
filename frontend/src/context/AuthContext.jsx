@@ -32,11 +32,12 @@ export function AuthProvider({ children }) {
               setLoading(false)
             })
         }
-      } catch {
-        localStorage.removeItem('growwell_user')
-        localStorage.removeItem('growwell_token')
-        setLoading(false)
-      }
+        } catch (err) {
+          console.error('Session restore failed:', err)
+          localStorage.removeItem('growwell_user')
+          localStorage.removeItem('growwell_token')
+          setLoading(false)
+        }
     } else {
       setLoading(false)
     }
@@ -51,7 +52,8 @@ export function AuthProvider({ children }) {
       setUser(userData)
       setIsAuthenticated(true)
       return { success: true, role: userData.role }
-    } catch {
+    } catch (err) {
+      console.error('Login failed:', err)
       const found = mockUsers.find(
         (u) => u.username === username && u.password === password
       )

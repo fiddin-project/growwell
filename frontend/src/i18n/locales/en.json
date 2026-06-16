@@ -206,5 +206,5 @@
   "month_nov": "Nov",
   "month_dec": "Dec",
   "dashboard_error": "Failed to load dashboard data",
-  "actions": "Actions"
+  "admin_dashboard": "Admin Dashboard"
 }

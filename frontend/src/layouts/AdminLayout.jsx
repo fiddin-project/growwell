@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import DashboardLayout from './DashboardLayout'
 
 const navItems = [
@@ -12,5 +13,6 @@ const navItems = [
 ]
 
 export default function AdminLayout() {
-  return <DashboardLayout navItems={navItems} subtitle="Admin Dashboard" />
+  const { t } = useTranslation()
+  return <DashboardLayout navItems={navItems} subtitle={t('admin_dashboard')} />
 }

@@ -32,7 +32,8 @@ export default function DashboardPage() {
           if (!cancelled) setRecentActivity(data.recentScreenings.slice(0, 3))
           return
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to load dashboard:', err)
         const pengasuhSkrining = mockSkrining
           .sort((a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining))
         if (!cancelled) setRecentActivity(pengasuhSkrining.slice(0, 3))
@@ -84,7 +85,7 @@ export default function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="font-headline-md text-headline-md text-on-surface mb-4">{t('recent_activity')}</h2>
+        <h2 className="font-headline-md text-headline-md mb-4" style={{ color: '#8B6914' }}>{t('recent_activity')}</h2>
         {loading ? (
           <LoadingSpinner fullPage />
         ) : recentActivity.length === 0 ? (

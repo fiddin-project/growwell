@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { LanguageToggle } from '../components/ui/LanguageToggle'
-import { User, Lock, Eye, EyeOff, LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -28,7 +27,8 @@ export default function LoginPage() {
       } else {
         toast.error(t('auth_login_error'))
       }
-    } catch {
+    } catch (err) {
+      console.error('Login failed:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setLoading(false)

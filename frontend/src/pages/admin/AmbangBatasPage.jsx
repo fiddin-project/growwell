@@ -14,6 +14,7 @@ const defaultAmbangBatas = [...mockAmbangBatas]
 export default function AmbangBatasPage() {
   const { t } = useTranslation()
   const [data, setData] = useState(() => mockAmbangBatas.map((item) => ({ ...item })))
+  const [skalaList, setSkalaList] = useState(mockSkala)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -25,6 +26,10 @@ export default function AmbangBatasPage() {
       .then((res) => setData(res))
       .catch(() => { toast.error(t('toast_error_api')) })
       .finally(() => setLoading(false))
+
+    api.getSkala()
+      .then((res) => setSkalaList(res))
+      .catch(() => {})
   }, [t])
 
   const handleInputChange = (id, field, value) => {
@@ -52,7 +57,8 @@ export default function AmbangBatasPage() {
       )
       toast.success(t('toast_saved'))
       setIsEditing(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to save thresholds:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setSaving(false)
@@ -67,7 +73,8 @@ export default function AmbangBatasPage() {
       setData(res)
       toast.success(t('toast_reset'))
       setIsEditing(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to reset thresholds:', err)
       setData(defaultAmbangBatas.map((item) => ({ ...item })))
       toast.error(t('toast_error_api'))
     } finally {
@@ -77,7 +84,7 @@ export default function AmbangBatasPage() {
 
   const scaleLookup = (id_skala) => {
     if (!id_skala) return t('total')
-    const s = mockSkala.find((sc) => sc.id_skala === id_skala)
+    const s = skalaList.find((sc) => sc.id_skala === id_skala)
     return s ? `${s.nama_skala} / ${s.nama_skala_en} (${s.id_skala})` : id_skala
   }
 

@@ -45,7 +45,8 @@ export default function UsersPage() {
         if (!controller.signal.aborted) {
           setUsers(Array.isArray(res) ? res : res.data || [])
         }
-    } catch {
+    } catch (err) {
+      console.error('Failed to load users:', err)
       if (!controller.signal.aborted) {
         toast.error(t('toast_error_api'))
       }
@@ -98,7 +99,8 @@ export default function UsersPage() {
         fetchUsers(search, page)
       }
       setModalOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('Failed to save user:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setSaveLoading(false)
@@ -111,7 +113,8 @@ export default function UsersPage() {
       await api.deleteUser(deleteTarget.id)
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id))
       toast.success(t('toast_deleted'))
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete user:', err)
       toast.error(t('toast_error_api'))
     } finally {
       setDeleteLoading(false)

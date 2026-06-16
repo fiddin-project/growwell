@@ -3,6 +3,10 @@ const authenticate = require('../../middleware/authenticate')
 const requireRole = require('../../middleware/requireRole')
 const ROLES = require('../../lib/roles')
 
+function validateSkalaId(id) {
+  return typeof id === 'string' && id.length > 0 && id.length <= 10
+}
+
 async function routes(fastify, opts) {
   fastify.get(
     '/api/admin/skala',
@@ -33,6 +37,12 @@ async function routes(fastify, opts) {
     async (req, reply) => {
       try {
         const { id_skala, nama_skala, nama_skala_en } = req.body
+        if (!id_skala || !nama_skala) {
+          return reply.status(400).send({ error: 'id_skala dan nama_skala wajib diisi' })
+        }
+        if (!validateSkalaId(id_skala)) {
+          return reply.status(400).send({ error: 'id_skala tidak valid' })
+        }
         const scale = await prisma.skala.create({
           data: { id_skala, nama_skala, nama_skala_en },
         })
@@ -48,6 +58,9 @@ async function routes(fastify, opts) {
     { preHandler: [authenticate, requireRole(ROLES.ADMIN)] },
     async (req, reply) => {
       try {
+        if (!validateSkalaId(req.params.id)) {
+          return reply.status(400).send({ error: 'ID skala tidak valid' })
+        }
         const { nama_skala, nama_skala_en } = req.body
         const scale = await prisma.skala.update({
           where: { id_skala: req.params.id },
@@ -65,6 +78,9 @@ async function routes(fastify, opts) {
     { preHandler: [authenticate, requireRole(ROLES.ADMIN)] },
     async (req, reply) => {
       try {
+        if (!validateSkalaId(req.params.id)) {
+          return reply.status(400).send({ error: 'ID skala tidak valid' })
+        }
         const pertanyaanCount = await prisma.pertanyaan.count({
           where: { id_skala: req.params.id },
         })
