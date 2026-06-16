@@ -11,7 +11,7 @@ async function routes(fastify, opts) {
       const { anakId } = req.params
 
       const anak = await prisma.anak.findUnique({ where: { id: parseInt(anakId) } })
-      if (!anak || anak.created_by !== req.user.id) {
+      if (!anak || (anak.created_by !== req.user.id && !anak.created_by_admin)) {
         return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
       }
 
@@ -84,7 +84,7 @@ async function routes(fastify, opts) {
       if (!anak) {
         return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
       }
-      if (anak.created_by !== req.user.id) {
+      if (anak.created_by !== req.user.id && !anak.created_by_admin) {
         return reply.status(403).send({ error: 'Akses ditolak' })
       }
 
