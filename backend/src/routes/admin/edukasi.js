@@ -6,8 +6,18 @@ const ROLES = require('../../lib/roles')
 const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
+const { pipeline } = require('stream/promises')
 
 const uploadDir = path.join(__dirname, '..', '..', '..', 'uploads', 'edukasi')
+const ALLOWED_FIELDS = [
+  'judul',
+  'judul_en',
+  'deskripsi',
+  'deskripsi_en',
+  'tipe',
+  'url_atau_file',
+  'is_active',
+]
 
 function ensureUploadDir() {
   if (!fs.existsSync(uploadDir)) {
@@ -26,21 +36,21 @@ async function saveUploadedFile(fileData) {
   const ext = path.extname(fileData.filename) || '.pdf'
   const filename = crypto.randomUUID() + ext
   const filePath = path.join(uploadDir, filename)
-  const writeStream = fs.createWriteStream(filePath)
-  await new Promise((resolve, reject) => {
-    fileData.file.pipe(writeStream)
-    fileData.file.on('end', resolve)
-    fileData.file.on('error', reject)
-  })
+  await pipeline(fileData.file, fs.createWriteStream(filePath))
   return '/uploads/edukasi/' + filename
+}
+
+function deleteUploadedFile(url) {
+  if (!url || !url.startsWith('/uploads/edukasi/')) return
+  const filePath = path.join(uploadDir, path.basename(url))
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath)
+  }
 }
 
 function deleteOldFile(existing) {
   if (existing.url_atau_file && existing.tipe === 'pdf') {
-    const oldPath = path.join(__dirname, '..', '..', '..', existing.url_atau_file)
-    if (fs.existsSync(oldPath)) {
-      fs.unlinkSync(oldPath)
-    }
+    deleteUploadedFile(existing.url_atau_file)
   }
 }
 
@@ -76,23 +86,22 @@ async function routes(fastify, opts) {
     '/api/admin/edukasi',
     { preHandler: [authenticate, requireRole(ROLES.ADMIN)] },
     async (req, reply) => {
+      let uploadedFile = null
       try {
         ensureUploadDir()
 
         const fields = {}
-        let fileData = null
-        const allowedFields = ['judul', 'deskripsi', 'tipe', 'url_atau_file', 'is_active']
 
         for await (const part of req.parts()) {
           if (part.type === 'file') {
-            fileData = part
-          } else if (part.type === 'field' && allowedFields.includes(part.fieldname)) {
+            uploadedFile = await saveUploadedFile(part)
+          } else if (part.type === 'field' && ALLOWED_FIELDS.includes(part.fieldname)) {
             fields[part.fieldname] = part.value
           }
         }
 
-        if (fileData) {
-          fields.url_atau_file = await saveUploadedFile(fileData)
+        if (uploadedFile) {
+          fields.url_atau_file = uploadedFile
           fields.tipe = 'pdf'
         }
 
@@ -109,6 +118,9 @@ async function routes(fastify, opts) {
         })
         return reply.status(201).send(edukasi)
       } catch (err) {
+        if (uploadedFile) {
+          deleteUploadedFile(uploadedFile)
+        }
         return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
       }
     }
@@ -118,6 +130,7 @@ async function routes(fastify, opts) {
     '/api/admin/edukasi/:id',
     { preHandler: [authenticate, requireRole(ROLES.ADMIN), validateIdParam] },
     async (req, reply) => {
+      let uploadedFile = null
       try {
         const id = req.params.id
         const existing = await prisma.edukasi.findUnique({ where: { id } })
@@ -128,20 +141,17 @@ async function routes(fastify, opts) {
         ensureUploadDir()
 
         const data = {}
-        let fileData = null
-        const allowedFields = ['judul', 'deskripsi', 'tipe', 'url_atau_file', 'is_active']
 
         for await (const part of req.parts()) {
           if (part.type === 'file') {
-            fileData = part
-          } else if (part.type === 'field' && allowedFields.includes(part.fieldname)) {
+            uploadedFile = await saveUploadedFile(part)
+          } else if (part.type === 'field' && ALLOWED_FIELDS.includes(part.fieldname)) {
             data[part.fieldname] = part.value
           }
         }
 
-        if (fileData) {
-          deleteOldFile(existing)
-          data.url_atau_file = await saveUploadedFile(fileData)
+        if (uploadedFile) {
+          data.url_atau_file = uploadedFile
           data.tipe = 'pdf'
         }
 
@@ -159,8 +169,14 @@ async function routes(fastify, opts) {
           where: { id },
           data,
         })
+        if (uploadedFile) {
+          deleteOldFile(existing)
+        }
         return reply.status(200).send(edukasi)
       } catch (err) {
+        if (uploadedFile) {
+          deleteUploadedFile(uploadedFile)
+        }
         return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
       }
     }
