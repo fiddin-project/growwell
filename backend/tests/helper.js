@@ -1,5 +1,6 @@
 const fastify = require('fastify')
 const jwt = require('@fastify/jwt')
+const { MAX_UPLOAD_SIZE } = require('../src/lib/uploads')
 
 async function buildApp(opts = {}) {
   const app = fastify({ logger: false })
@@ -18,6 +19,10 @@ async function buildApp(opts = {}) {
   await app.register(require('@fastify/rate-limit'), {
     max: 100,
     timeWindow: '1 minute',
+  })
+
+  await app.register(require('@fastify/multipart'), {
+    limits: { fileSize: MAX_UPLOAD_SIZE },
   })
 
   await app.register(require('../src/routes/auth/login'))

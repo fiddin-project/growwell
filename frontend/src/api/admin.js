@@ -41,7 +41,7 @@ export const createAnak = anak.create
 export const updateAnak = anak.update
 export const deleteAnak = anak.delete
 
-const edukasi = createCrudResource('/admin/edukasi', { multipart: true })
+const edukasi = createCrudResource('/admin/edukasi')
 export const getEdukasi = edukasi.getAll
 export const createEdukasi = edukasi.create
 export const updateEdukasi = edukasi.update

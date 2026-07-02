@@ -6,7 +6,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 const fastify = require('fastify')({ logger: true })
-const path = require('path')
+const { MAX_UPLOAD_SIZE, getUploadRoot } = require('./lib/uploads')
 
 fastify.register(require('@fastify/cors'), {
   origin: process.env.ALLOWED_ORIGINS
@@ -29,11 +29,11 @@ fastify.register(require('@fastify/rate-limit'), {
 })
 
 fastify.register(require('@fastify/multipart'), {
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: MAX_UPLOAD_SIZE },
 })
 
 fastify.register(require('@fastify/static'), {
-  root: path.join(__dirname, '..', process.env.UPLOAD_DIR || 'uploads'),
+  root: getUploadRoot(),
   prefix: '/uploads/',
 })
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Edit, Trash2, FileText, Video, BookOpen, ExternalLink, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -32,7 +32,6 @@ export default function EdukasiPage() {
     judul: '', judul_en: '', deskripsi: '', deskripsi_en: '', tipe: 'pdf', url_atau_file: '', is_active: true,
   })
   const [file, setFile] = useState(null)
-  const fileRef = useRef(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
@@ -63,8 +62,20 @@ export default function EdukasiPage() {
   }
 
   const handleSave = async () => {
-    if (!form.judul.trim() || !form.judul_en.trim() || !form.tipe) {
+    if (!form.judul.trim() || !form.judul_en.trim() || !form.deskripsi.trim() || !form.deskripsi_en.trim() || !form.tipe) {
       toast.error(t('fill_all_fields'))
+      return
+    }
+    if (form.tipe === 'pdf' && !editingItem && !file) {
+      toast.error(t('pdf_file_required'))
+      return
+    }
+    if (form.tipe === 'pdf' && editingItem?.tipe !== 'pdf' && !file) {
+      toast.error(t('pdf_file_required'))
+      return
+    }
+    if (form.tipe === 'youtube' && !/^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/.test(form.url_atau_file.trim())) {
+      toast.error(t('youtube_url_invalid'))
       return
     }
     setSaveLoading(true)
@@ -96,7 +107,7 @@ export default function EdukasiPage() {
       setModalOpen(false)
     } catch (err) {
       console.error('Failed to save education:', err)
-      toast.error(t('toast_error_api'))
+      toast.error(err.response?.data?.error || t('toast_error_api'))
     } finally {
       setSaveLoading(false)
     }
@@ -308,8 +319,14 @@ export default function EdukasiPage() {
               onChange={(e) => {
                 const f = e.target.files?.[0]
                 if (f) {
+                  if (f.type !== 'application/pdf' || !f.name.toLowerCase().endsWith('.pdf')) {
+                    toast.error(t('pdf_file_invalid'))
+                    e.target.value = ''
+                    return
+                  }
                   if (f.size > 10 * 1024 * 1024) {
                     toast.error(t('file_too_large'))
+                    e.target.value = ''
                     return
                   }
                   setFile(f)
