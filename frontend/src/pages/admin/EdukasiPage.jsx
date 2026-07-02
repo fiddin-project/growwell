@@ -280,7 +280,7 @@ export default function EdukasiPage() {
               onChange={(e) => setForm({ ...form, deskripsi_en: e.target.value })}
             />
           </div>
-          <div className="max-w-xs">
+          <div className="w-full max-w-xs">
             <Select
               label={t('field_tipe')}
               id="tipe"
