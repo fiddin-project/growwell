@@ -20,6 +20,18 @@ const ALLOWED_FIELDS = new Set([
 ])
 const REQUIRED_FIELDS = ['judul', 'judul_en', 'deskripsi', 'deskripsi_en']
 const ALLOWED_YT = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/
+const ALLOWED_UPLOADS = {
+  pdf: {
+    mimetypes: new Set(['application/pdf']),
+    extensions: new Set(['.pdf']),
+    error: 'Hanya file PDF yang diizinkan',
+  },
+  gambar: {
+    mimetypes: new Set(['image/jpeg', 'image/png', 'image/webp']),
+    extensions: new Set(['.jpg', '.jpeg', '.png', '.webp']),
+    error: 'Hanya file gambar JPG, PNG, atau WEBP yang diizinkan',
+  },
+}
 
 class EdukasiRequestError extends Error {
   constructor(statusCode, message) {
@@ -48,7 +60,7 @@ function validateFields(fields, existing = null) {
     fields[field] = fields[field].trim()
   }
 
-  if (!['pdf', 'youtube'].includes(fields.tipe)) {
+  if (!['pdf', 'youtube', 'gambar'].includes(fields.tipe)) {
     throw new EdukasiRequestError(400, 'Tipe edukasi tidak valid')
   }
 
@@ -57,22 +69,23 @@ function validateFields(fields, existing = null) {
       throw new EdukasiRequestError(400, 'URL YouTube tidak valid')
     }
     fields.url_atau_file = fields.url_atau_file.trim()
-  } else if (!fields.uploadedFile && !(existing?.tipe === 'pdf' && existing.url_atau_file)) {
-    throw new EdukasiRequestError(400, 'File PDF wajib dipilih')
+  } else if (!fields.uploadedFile && !(existing?.tipe === fields.tipe && existing.url_atau_file)) {
+    throw new EdukasiRequestError(400, fields.tipe === 'pdf' ? 'File PDF wajib dipilih' : 'File gambar wajib dipilih')
   }
 
   fields.is_active = parseIsActive(fields.is_active)
 }
 
-async function saveUploadedFile(part, uploadDir) {
+async function saveUploadedFile(part, uploadDir, tipe) {
+  const uploadConfig = ALLOWED_UPLOADS[tipe]
   const extension = path.extname(part.filename || '').toLowerCase()
-  if (part.mimetype !== 'application/pdf' || extension !== '.pdf') {
+  if (!uploadConfig || !uploadConfig.mimetypes.has(part.mimetype) || !uploadConfig.extensions.has(extension)) {
     part.file.resume()
-    throw new EdukasiRequestError(415, 'Hanya file PDF yang diizinkan')
+    throw new EdukasiRequestError(415, uploadConfig?.error || 'Tipe file tidak diizinkan')
   }
 
   ensureUploadDir(uploadDir)
-  const filename = `${crypto.randomUUID()}.pdf`
+  const filename = `${crypto.randomUUID()}${extension}`
   const filePath = path.join(uploadDir, filename)
   try {
     await pipeline(part.file, fs.createWriteStream(filePath, { flags: 'wx' }))
@@ -83,7 +96,7 @@ async function saveUploadedFile(part, uploadDir) {
 
   if (part.file.truncated) {
     deleteFilePath(filePath)
-    throw new EdukasiRequestError(413, 'Ukuran file PDF maksimal 10 MB')
+    throw new EdukasiRequestError(413, 'Ukuran file maksimal 10 MB')
   }
 
   return {
@@ -103,15 +116,15 @@ async function parseMultipart(req, uploadDir) {
 
   try {
     for await (const part of req.parts()) {
-      if (part.type === 'file') {
+      if (part.type === 'field' && ALLOWED_FIELDS.has(part.fieldname)) {
+        fields[part.fieldname] = part.value
+      } else if (part.type === 'file') {
         fileCount += 1
         if (fileCount > 1) {
           part.file.resume()
-          throw new EdukasiRequestError(400, 'Hanya satu file PDF yang dapat diunggah')
+          throw new EdukasiRequestError(400, 'Hanya satu file yang dapat diunggah')
         }
-        uploadedFile = await saveUploadedFile(part, uploadDir)
-      } else if (part.type === 'field' && ALLOWED_FIELDS.has(part.fieldname)) {
-        fields[part.fieldname] = part.value
+        uploadedFile = await saveUploadedFile(part, uploadDir, fields.tipe)
       }
     }
   } catch (err) {
@@ -161,7 +174,7 @@ function sendError(req, reply, err, uploadedFile) {
   }
 
   if (err.code === 'FST_REQ_FILE_TOO_LARGE' || err.statusCode === 413) {
-    return reply.status(413).send({ error: 'Ukuran file PDF maksimal 10 MB' })
+    return reply.status(413).send({ error: 'Ukuran file maksimal 10 MB' })
   }
 
   req.log.error({ err }, 'Gagal memproses data edukasi')
@@ -220,7 +233,7 @@ async function routes(fastify, opts) {
           data: toDatabaseData(fields),
         })
 
-        if (existing.tipe === 'pdf' && (fields.uploadedFile || fields.tipe === 'youtube')) {
+        if (existing.tipe !== 'youtube' && (fields.uploadedFile || fields.tipe === 'youtube')) {
           deleteUploadedUrl(existing.url_atau_file, uploadDir)
         }
         return reply.send(edukasi)
@@ -242,7 +255,7 @@ async function routes(fastify, opts) {
         }
 
         await db.edukasi.delete({ where: { id } })
-        if (existing.tipe === 'pdf') {
+        if (existing.tipe !== 'youtube') {
           deleteUploadedUrl(existing.url_atau_file, uploadDir)
         }
         return reply.send({ message: 'Data edukasi berhasil dihapus' })

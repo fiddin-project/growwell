@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Edit, Trash2, FileText, Video, BookOpen, ExternalLink, Plus } from 'lucide-react'
+import { Edit, Trash2, FileText, Video, BookOpen, ExternalLink, Plus, Image as ImageIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal'
 import Input from '../../components/ui/Input'
@@ -16,6 +16,7 @@ import { mockEdukasi } from '../../data/mockData'
 const FILTERS = [
   { key: 'all', label: 'edu_filter_all' },
   { key: 'pdf', label: 'type_pdf' },
+  { key: 'gambar', label: 'type_image' },
   { key: 'youtube', label: 'type_youtube' },
 ]
 
@@ -66,12 +67,16 @@ export default function EdukasiPage() {
       toast.error(t('fill_all_fields'))
       return
     }
-    if (form.tipe === 'pdf' && !editingItem && !file) {
-      toast.error(t('pdf_file_required'))
+    if (['pdf', 'gambar'].includes(form.tipe) && !editingItem && !file) {
+      toast.error(form.tipe === 'pdf' ? t('pdf_file_required') : t('image_file_required'))
       return
     }
     if (form.tipe === 'pdf' && editingItem?.tipe !== 'pdf' && !file) {
       toast.error(t('pdf_file_required'))
+      return
+    }
+    if (form.tipe === 'gambar' && editingItem?.tipe !== 'gambar' && !file) {
+      toast.error(t('image_file_required'))
       return
     }
     if (form.tipe === 'youtube' && !/^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/.test(form.url_atau_file.trim())) {
@@ -113,6 +118,36 @@ export default function EdukasiPage() {
     }
   }
 
+  const handleFileChange = (nextFile, input) => {
+    if (!nextFile) return
+
+    if (nextFile.size > 10 * 1024 * 1024) {
+      toast.error(t('file_too_large'))
+      input.value = ''
+      return
+    }
+
+    if (form.tipe === 'pdf') {
+      if (nextFile.type !== 'application/pdf' || !nextFile.name.toLowerCase().endsWith('.pdf')) {
+        toast.error(t('pdf_file_invalid'))
+        input.value = ''
+        return
+      }
+    } else if (form.tipe === 'gambar') {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+      const validExt = ['.jpg', '.jpeg', '.png', '.webp']
+      const lowerName = nextFile.name.toLowerCase()
+      if (!validTypes.includes(nextFile.type) || !validExt.some((ext) => lowerName.endsWith(ext))) {
+        toast.error(t('image_file_invalid'))
+        input.value = ''
+        return
+      }
+    }
+
+    setFile(nextFile)
+    setForm({ ...form, url_atau_file: nextFile.name })
+  }
+
   const handleDelete = async () => {
     setDeleteLoading(true)
     try {
@@ -140,6 +175,14 @@ export default function EdukasiPage() {
     const matchStatus = statusFilter === 'all' || (statusFilter === 'active' && e.is_active) || (statusFilter === 'inactive' && !e.is_active)
     return matchFilter && matchSearch && matchStatus
   })
+
+  const getTypeMeta = (tipe) => {
+    if (tipe === 'pdf') return { icon: FileText, label: t('type_pdf'), badgeClass: 'badge-info', actionLabel: t('edu_open_pdf') }
+    if (tipe === 'gambar') return { icon: ImageIcon, label: t('type_image'), badgeClass: 'badge-warning', actionLabel: t('edu_open_image') }
+    return { icon: Video, label: t('type_youtube'), badgeClass: 'badge-error', actionLabel: t('edu_watch') }
+  }
+  const getTitle = (item) => (i18n.language?.startsWith('id') ? item.judul : item.judul_en)
+  const getDesc = (item) => (i18n.language?.startsWith('id') ? item.deskripsi : item.deskripsi_en)
 
   return (
     <div>
@@ -195,19 +238,20 @@ export default function EdukasiPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredEdukasi.map((item) => (
             <div key={item.id} className="card flex flex-col">
+              {item.tipe === 'gambar' && (
+                <div className="mb-3 overflow-hidden rounded-xl border border-outline-variant/40 bg-surface-container-low">
+                  <img src={item.url_atau_file} alt={getTitle(item)} className="h-40 w-full object-cover" />
+                </div>
+              )}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  {item.tipe === 'pdf' ? (
-                    <FileText size={20} className="text-primary" aria-hidden="true" />
-                  ) : (
-                    <Video size={20} className="text-primary" aria-hidden="true" />
-                  )}
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                    item.tipe === 'pdf'
-                      ? 'badge-info'
-                      : 'badge-error'
-                  }`}>
-                    {item.tipe === 'pdf' ? t('type_pdf') : t('type_youtube')}
+                  {(() => {
+                    const meta = getTypeMeta(item.tipe)
+                    const TypeIcon = meta.icon
+                    return <TypeIcon size={20} className="text-primary" aria-hidden="true" />
+                  })()}
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${getTypeMeta(item.tipe).badgeClass}`}>
+                    {getTypeMeta(item.tipe).label}
                   </span>
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                     item.is_active
@@ -226,25 +270,15 @@ export default function EdukasiPage() {
                   </button>
                 </div>
               </div>
-              <h3 className="text-body-strong mb-2 line-clamp-2" title={item.judul}>{item.judul}</h3>
-              <p className="text-caption mb-4 flex-1 line-clamp-3" title={item.deskripsi}>{i18n.language?.startsWith('id') ? item.deskripsi : item.deskripsi_en}</p>
-              {item.tipe === 'pdf' ? (
-                <button
-                  className="btn-secondary w-full justify-center"
-                  onClick={() => handleOpenLink(item)}
-                >
-                  <FileText size={16} aria-hidden="true" />
-                  {t('edu_open_pdf')}
-                </button>
-              ) : (
-                <button
-                  className="btn-secondary w-full justify-center"
-                  onClick={() => handleOpenLink(item)}
-                >
-                  <ExternalLink size={16} aria-hidden="true" />
-                  {t('edu_watch')}
-                </button>
-              )}
+              <h3 className="text-body-strong mb-2 line-clamp-2" title={getTitle(item)}>{getTitle(item)}</h3>
+              <p className="text-caption mb-4 flex-1 line-clamp-3" title={getDesc(item)}>{getDesc(item)}</p>
+              <button
+                className="btn-secondary w-full justify-center"
+                onClick={() => handleOpenLink(item)}
+              >
+                {item.tipe === 'pdf' ? <FileText size={16} aria-hidden="true" /> : item.tipe === 'gambar' ? <ImageIcon size={16} aria-hidden="true" /> : <ExternalLink size={16} aria-hidden="true" />}
+                {getTypeMeta(item.tipe).actionLabel}
+              </button>
             </div>
           ))}
         </div>
@@ -299,6 +333,7 @@ export default function EdukasiPage() {
               onChange={(e) => { setForm({ ...form, tipe: e.target.value, url_atau_file: '' }); setFile(null) }}
             >
               <option value="pdf">{t('type_pdf')}</option>
+              <option value="gambar">{t('type_image')}</option>
               <option value="youtube">{t('type_youtube')}</option>
             </Select>
           </div>
@@ -315,23 +350,10 @@ export default function EdukasiPage() {
               label={t('field_url')}
               id="file"
               type="file"
-              accept=".pdf"
+              accept={form.tipe === 'pdf' ? '.pdf' : '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp'}
               onChange={(e) => {
                 const f = e.target.files?.[0]
-                if (f) {
-                  if (f.type !== 'application/pdf' || !f.name.toLowerCase().endsWith('.pdf')) {
-                    toast.error(t('pdf_file_invalid'))
-                    e.target.value = ''
-                    return
-                  }
-                  if (f.size > 10 * 1024 * 1024) {
-                    toast.error(t('file_too_large'))
-                    e.target.value = ''
-                    return
-                  }
-                  setFile(f)
-                  setForm({ ...form, url_atau_file: f.name })
-                }
+                handleFileChange(f, e.target)
               }}
             />
           )}

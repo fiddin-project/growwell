@@ -78,7 +78,11 @@ function authHeaders(app, headers) {
   return { ...headers, authorization: `Bearer ${token}` }
 }
 
-describe('Admin edukasi PDF upload', () => {
+function imageFile(content = Buffer.from('image-bytes')) {
+  return { filename: 'panduan.png', mimetype: 'image/png', content }
+}
+
+describe('Admin edukasi upload', () => {
   let uploadDir
   let app
   let db
@@ -130,9 +134,43 @@ describe('Admin edukasi PDF upload', () => {
     expect(db.edukasi.create).not.toHaveBeenCalled()
   })
 
+  it('stores a valid image upload', async () => {
+    const request = multipartPayload(validFields({ tipe: 'gambar' }), [imageFile()])
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/admin/edukasi',
+      headers: authHeaders(app, request.headers),
+      payload: request.payload,
+    })
+
+    expect(response.statusCode).toBe(201)
+    const data = db.edukasi.create.mock.calls[0][0].data
+    expect(data).toMatchObject({
+      tipe: 'gambar',
+      is_active: true,
+    })
+    expect(data.url_atau_file).toMatch(/^\/uploads\/edukasi\/.+\.png$/)
+    expect(fs.readdirSync(uploadDir)).toHaveLength(1)
+  })
+
   it('rejects non-PDF files with 415', async () => {
     const request = multipartPayload(validFields(), [
       { filename: 'panduan.txt', mimetype: 'text/plain', content: Buffer.from('not pdf') },
+    ])
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/admin/edukasi',
+      headers: authHeaders(app, request.headers),
+      payload: request.payload,
+    })
+
+    expect(response.statusCode).toBe(415)
+    expect(fs.readdirSync(uploadDir)).toHaveLength(0)
+  })
+
+  it('rejects invalid image files with 415', async () => {
+    const request = multipartPayload(validFields({ tipe: 'gambar' }), [
+      { filename: 'panduan.gif', mimetype: 'image/gif', content: Buffer.from('gif') },
     ])
     const response = await app.inject({
       method: 'POST',
@@ -217,6 +255,28 @@ describe('Admin edukasi PDF upload', () => {
       url_atau_file: `/uploads/edukasi/${oldName}`,
     })
     const request = multipartPayload(validFields(), [pdfFile()])
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/admin/edukasi/7',
+      headers: authHeaders(app, request.headers),
+      payload: request.payload,
+    })
+
+    expect(response.statusCode).toBe(200)
+    const files = fs.readdirSync(uploadDir)
+    expect(files).toHaveLength(1)
+    expect(files[0]).not.toBe(oldName)
+  })
+
+  it('replaces the old image only after a successful update', async () => {
+    const oldName = 'old.png'
+    fs.writeFileSync(path.join(uploadDir, oldName), 'old image')
+    db.edukasi.findUnique.mockResolvedValueOnce({
+      id: 7,
+      tipe: 'gambar',
+      url_atau_file: `/uploads/edukasi/${oldName}`,
+    })
+    const request = multipartPayload(validFields({ tipe: 'gambar' }), [imageFile()])
     const response = await app.inject({
       method: 'PUT',
       url: '/api/admin/edukasi/7',
