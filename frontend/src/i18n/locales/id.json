@@ -213,5 +213,11 @@
   "month_nov": "Nov",
   "month_dec": "Des",
   "dashboard_error": "Gagal memuat data dashboard",
-  "admin_dashboard": "Panel Admin"
+  "admin_dashboard": "Panel Admin",
+  "pwa_offline_title": "Anda sedang offline",
+  "pwa_offline_body": "Halaman yang pernah dimuat tetap tersedia, tetapi data dan tindakan aplikasi memerlukan koneksi internet.",
+  "pwa_update_title": "Versi baru GrowWell tersedia",
+  "pwa_update_body": "Perbarui saat Anda tidak sedang mengisi skrining agar perubahan yang belum disimpan tetap aman.",
+  "pwa_update_action": "Perbarui aplikasi",
+  "pwa_update_dismiss": "Nanti saja"
 }

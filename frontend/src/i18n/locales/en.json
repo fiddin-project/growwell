@@ -213,5 +213,11 @@
   "month_nov": "Nov",
   "month_dec": "Dec",
   "dashboard_error": "Failed to load dashboard data",
-  "admin_dashboard": "Admin Dashboard"
+  "admin_dashboard": "Admin Dashboard",
+  "pwa_offline_title": "You are offline",
+  "pwa_offline_body": "Previously loaded pages remain available, but app data and actions require an internet connection.",
+  "pwa_update_title": "A new GrowWell version is available",
+  "pwa_update_body": "Update when you are not completing a screening so unsaved changes remain safe.",
+  "pwa_update_action": "Update app",
+  "pwa_update_dismiss": "Not now"
 }

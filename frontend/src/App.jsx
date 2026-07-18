@@ -1,6 +1,7 @@
 import { AuthProvider } from './context/AuthContext'
 import AppRouter from './router'
 import { Toaster } from 'react-hot-toast'
+import PwaStatus from './components/PwaStatus'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           },
         }}
       />
+      <PwaStatus />
       <AppRouter />
     </AuthProvider>
   )
