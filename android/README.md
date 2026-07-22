@@ -14,6 +14,16 @@ $env:ANDROID_HOME = 'C:\path\to\android-sdk'
 
 APK dibuat di `app/build/outputs/apk/debug/app-debug.apk`.
 
+## Bahasa aplikasi
+
+Aplikasi mendukung Bahasa Indonesia (default) dan English. Pilihan bahasa tersedia pada layar login dan toolbar utama, diterapkan tanpa perlu login ulang, serta disimpan lokal dengan Preferences DataStore. Teks UI berada di `app/src/main/res/values/strings.xml` dan `app/src/main/res/values-en/strings.xml`; nilai kontrak API seperti `L`, `P`, `tidak_benar`, dan kode kategori tidak diterjemahkan saat dikirim ke server.
+
+Konten bilingual dari API (`*_en`) dipilih sesuai bahasa aktif dengan fallback ke Bahasa Indonesia. Jalankan pemeriksaan berikut setelah mengubah resource atau pemetaan konten:
+
+```powershell
+.\gradlew.bat testDebugUnitTest lintDebug assembleDebug assembleRelease
+```
+
 ## Build production
 
 API production wajib HTTPS dan URL harus diakhiri `/`:

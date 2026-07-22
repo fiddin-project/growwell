@@ -5,12 +5,14 @@ import id.growwell.mobile.BuildConfig
 import id.growwell.mobile.data.remote.*
 import id.growwell.mobile.data.session.TokenStore
 import id.growwell.mobile.data.local.GrowWellDatabase
+import id.growwell.mobile.data.locale.LanguageStore
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class AppContainer(context: Context) {
+    val languageStore = LanguageStore(context)
     val tokenStore = TokenStore(context)
     val database = GrowWellDatabase.create(context)
 

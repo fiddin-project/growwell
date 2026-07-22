@@ -65,6 +65,7 @@ data class ScaleDto(
 data class QuestionDto(
     val id: Int,
     @SerializedName("teks_pertanyaan") val text: String,
+    @SerializedName("teks_pertanyaan_en") val englishText: String?,
     @SerializedName("id_skala") val scaleId: String,
 )
 
