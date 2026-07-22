@@ -234,6 +234,12 @@ curl https://www.growwell.id/api/health
 
 Respons yang diharapkan adalah `{"status":"ok","database":"ok"}`. Jangan menjalankan `npm run seed` pada VPS karena seed menghapus data aplikasi sebelum membuat data contoh.
 
+## Kontrak API
+
+Backend menghasilkan kontrak OpenAPI 3.0 untuk seluruh route `/api`, termasuk parameter path/query, request body, success response, dan error envelope. Dokumen JSON tersedia di `/documentation/json`. Swagger UI tersedia di `/documentation` saat bukan production atau ketika `ENABLE_API_DOCS=true`.
+
+Schema reusable berada di `backend/src/plugins/apiContract.js`. Route API baru wajib ditambahkan ke peta kontrak tersebut; backend sengaja gagal saat startup jika success-response contract belum ditentukan.
+
 ## Pengujian dan pemeriksaan kode
 
 Backend:

@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import * as api from '../../api/admin'
 
 const COLORS = ['#15803d', '#92400e', '#93000a']
+const MONTH_KEYS = ['month_jan', 'month_feb', 'month_mar', 'month_apr', 'month_may', 'month_jun', 'month_jul', 'month_aug', 'month_sep', 'month_oct', 'month_nov', 'month_dec']
 
 function normalizeCategories(input) {
   if (Array.isArray(input)) return input
@@ -30,8 +31,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
-  const monthKeys = ['month_jan', 'month_feb', 'month_mar', 'month_apr', 'month_may', 'month_jun', 'month_jul', 'month_aug', 'month_sep', 'month_oct', 'month_nov', 'month_dec']
-  const monthLabels = useMemo(() => monthKeys.map((k) => t(k)), [t])
+  const monthLabels = useMemo(() => MONTH_KEYS.map((key) => t(key)), [t])
 
   useEffect(() => {
     api.getDashboard()

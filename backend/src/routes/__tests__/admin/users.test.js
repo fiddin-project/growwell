@@ -57,6 +57,19 @@ describe('GET /api/admin/users', () => {
     })
     expect(res.statusCode).toBe(200)
   })
+
+  it.each(['page=0', 'page=abc', 'page=1.5', 'limit=0', 'limit=101', 'limit=abc'])(
+    'rejects invalid pagination: %s',
+    async (query) => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/admin/users?${query}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().code).toBe('INVALID_PAGINATION')
+    }
+  )
 })
 
 describe('GET /api/admin/users/:id', () => {

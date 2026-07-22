@@ -1,5 +1,6 @@
 const swagger = require('@fastify/swagger')
 const swaggerUi = require('@fastify/swagger-ui')
+const { applyApiContract, registerApiSchemas } = require('./apiContract')
 
 const PUBLIC_ROUTES = new Set([
   'GET /api/health',
@@ -25,7 +26,13 @@ function tagFor(url) {
 }
 
 async function registerOpenApi(app) {
+  registerApiSchemas(app)
   await app.register(swagger, {
+    refResolver: {
+      buildLocalReference(json, _baseUri, _fragment, index) {
+        return json.$id || `def-${index}`
+      },
+    },
     openapi: {
       openapi: '3.0.3',
       info: {
@@ -52,7 +59,9 @@ async function registerOpenApi(app) {
     const url = routeOptions.url
     if (!url?.startsWith('/api/')) return
     const method = Array.isArray(routeOptions.method) ? routeOptions.method[0] : routeOptions.method
+    if (method === 'HEAD') return
     const key = `${method} ${url}`
+    applyApiContract(app, routeOptions)
     routeOptions.schema ||= {}
     routeOptions.schema.operationId ||= operationId(method, url)
     routeOptions.schema.tags ||= tagFor(url)

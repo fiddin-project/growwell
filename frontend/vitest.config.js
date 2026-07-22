@@ -12,7 +12,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{js,jsx}'],
-      exclude: ['src/main.jsx', 'src/data/mockData.js'],
+      exclude: ['src/main.jsx'],
     },
   },
 })

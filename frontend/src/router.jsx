@@ -1,25 +1,28 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import AdminLayout from './layouts/AdminLayout'
 import PengasuhLayout from './layouts/PengasuhLayout'
 import ProtectedRoute from './components/ProtectedRoute'
-import LoginPage from './pages/LoginPage'
-import AdminDashboardPage from './pages/admin/DashboardPage'
-import UsersPage from './pages/admin/UsersPage'
-import SkalaPage from './pages/admin/SkalaPage'
-import PertanyaanPage from './pages/admin/PertanyaanPage'
-import AmbangBatasPage from './pages/admin/AmbangBatasPage'
-import AnakPage from './pages/admin/AnakPage'
-import AdminEdukasiPage from './pages/admin/EdukasiPage'
-import AdminPsikologPage from './pages/admin/PsikologPage'
-import PengasuhDashboardPage from './pages/pengasuh/DashboardPage'
-import ScreeningChildSelectPage from './pages/pengasuh/screening/ChildSelectPage'
-import QuestionnairePage from './pages/pengasuh/screening/QuestionnairePage'
-import ResultPage from './pages/pengasuh/screening/ResultPage'
-import PengasuhEdukasiPage from './pages/pengasuh/EdukasiPage'
-import MonitoringSelectPage from './pages/pengasuh/MonitoringSelectPage'
-import MonitoringDetailPage from './pages/pengasuh/MonitoringDetailPage'
-import PengasuhPsikologPage from './pages/pengasuh/PsikologPage'
+import { LoadingSpinner } from './components/ui/LoadingSpinner'
+
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const AdminDashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
+const UsersPage = lazy(() => import('./pages/admin/UsersPage'))
+const SkalaPage = lazy(() => import('./pages/admin/SkalaPage'))
+const PertanyaanPage = lazy(() => import('./pages/admin/PertanyaanPage'))
+const AmbangBatasPage = lazy(() => import('./pages/admin/AmbangBatasPage'))
+const AnakPage = lazy(() => import('./pages/admin/AnakPage'))
+const AdminEdukasiPage = lazy(() => import('./pages/admin/EdukasiPage'))
+const AdminPsikologPage = lazy(() => import('./pages/admin/PsikologPage'))
+const PengasuhDashboardPage = lazy(() => import('./pages/pengasuh/DashboardPage'))
+const ScreeningChildSelectPage = lazy(() => import('./pages/pengasuh/screening/ChildSelectPage'))
+const QuestionnairePage = lazy(() => import('./pages/pengasuh/screening/QuestionnairePage'))
+const ResultPage = lazy(() => import('./pages/pengasuh/screening/ResultPage'))
+const PengasuhEdukasiPage = lazy(() => import('./pages/pengasuh/EdukasiPage'))
+const MonitoringSelectPage = lazy(() => import('./pages/pengasuh/MonitoringSelectPage'))
+const MonitoringDetailPage = lazy(() => import('./pages/pengasuh/MonitoringDetailPage'))
+const PengasuhPsikologPage = lazy(() => import('./pages/pengasuh/PsikologPage'))
 
 function RootRedirect() {
   const { isAuthenticated, user, loading } = useAuth()
@@ -41,7 +44,8 @@ function RootRedirect() {
 export default function AppRouter() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<LoadingSpinner fullPage />}>
+        <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />
 
@@ -82,7 +86,8 @@ export default function AppRouter() {
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

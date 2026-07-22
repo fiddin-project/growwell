@@ -92,7 +92,7 @@ export default function MonitoringDetailPage() {
         score: s.total_score,
         fullDate: s.tanggal_skrining,
       })),
-    [screenings, i18n.language]
+    [screenings]
   )
 
   const totalThreshold = useMemo(() => {

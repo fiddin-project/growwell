@@ -67,7 +67,7 @@ export default function ChildSelectPage() {
     }
     fetchChildren().finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [user.id])
+  }, [user.id, t])
 
   const filteredChildren = children.filter((child) =>
     !search || child.nama.toLowerCase().includes(search.toLowerCase())

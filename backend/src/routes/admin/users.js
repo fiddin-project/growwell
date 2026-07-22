@@ -4,6 +4,9 @@ const authenticate = require('../../middleware/authenticate')
 const requireRole = require('../../middleware/requireRole')
 const validateIdParam = require('../../middleware/validateIdParam')
 const ROLES = require('../../lib/roles')
+const { parsePagination } = require('../../lib/pagination')
+
+const MAX_PAGE_SIZE = 100
 
 async function routes(fastify, opts) {
   fastify.get(
@@ -11,9 +14,15 @@ async function routes(fastify, opts) {
     { preHandler: [authenticate, requireRole(ROLES.ADMIN)] },
     async (req, reply) => {
       try {
-        const { search, role, page = 1, limit = 100 } = req.query
-        const skip = (parseInt(page) - 1) * parseInt(limit)
-        const take = parseInt(limit)
+        const { search, role } = req.query
+        const pagination = parsePagination(req.query, { defaultLimit: MAX_PAGE_SIZE, maxLimit: MAX_PAGE_SIZE })
+        if (!pagination) {
+          return reply.status(400).send({
+            error: `page harus bilangan bulat positif dan limit harus antara 1-${MAX_PAGE_SIZE}`,
+            code: 'INVALID_PAGINATION',
+          })
+        }
+        const { page, limit: take, skip } = pagination
 
         const where = {}
         if (role) where.role = role
@@ -34,7 +43,7 @@ async function routes(fastify, opts) {
           prisma.user.count({ where }),
         ])
 
-        return reply.send({ data: users, total, page: parseInt(page), limit: take })
+        return reply.send({ data: users, total, page, limit: take })
       } catch (err) {
         return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
       }

@@ -1,5 +1,7 @@
-# Plugins Directory
+# Backend plugins
 
-This directory is reserved for custom Fastify plugins (e.g. decorators, hooks, custom utilities).
+- `apiContract.js` defines reusable JSON schemas and attaches request/response contracts to every `/api` route.
+- `openapi.js` registers OpenAPI 3.0 generation and the optional Swagger UI.
+- `errorEnvelope.js` normalizes JSON errors with stable codes and request IDs.
 
-Fastify plugins registered here can be imported and registered in the main `src/index.js` file.
+Any new API route must be added to `apiContract.js`; application startup fails when a success-response contract is missing.
