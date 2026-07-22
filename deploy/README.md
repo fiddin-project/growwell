@@ -1,7 +1,8 @@
 # GrowWell production deployment
 
-The production host uses Nginx on port 80. Docker therefore exposes the
-frontend only on `127.0.0.1:8081`, and host Nginx proxies public traffic to it.
+The production host uses Nginx on port 80. Docker exposes the frontend only
+on `127.0.0.1:${FRONTEND_PORT}` and host Nginx proxies public traffic to it.
+The default is port `8081`; the current GrowWell VPS uses port `3000`.
 
 Public production traffic must terminate TLS at the host Nginx (or an upstream
 trusted proxy). Set these values in the root `.env` to the real HTTPS origin;
@@ -10,6 +11,7 @@ do not use the server IP or an `http://` origin:
 ```env
 PUBLIC_BASE_URL=https://growwell.example.com
 ALLOWED_ORIGINS=https://growwell.example.com
+FRONTEND_PORT=3000
 ```
 
 The checked-in port-80 server block is the internal proxy baseline. Preserve

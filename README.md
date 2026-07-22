@@ -221,7 +221,10 @@ Root `.env` production harus menggunakan origin HTTPS:
 ```env
 PUBLIC_BASE_URL=https://www.growwell.id
 ALLOWED_ORIGINS=https://www.growwell.id
+FRONTEND_PORT=3000
 ```
+
+`FRONTEND_PORT` hanya mengatur port loopback host untuk Nginx. Nilai default repository adalah `8081`; VPS GrowWell memakai `3000` agar sesuai dengan konfigurasi Nginx yang sudah berjalan.
 
 Verifikasi setelah deployment:
 
