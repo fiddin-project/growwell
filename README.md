@@ -1,6 +1,6 @@
 # GrowWell
 
-GrowWell adalah aplikasi web untuk skrining awal kesehatan mental dan perilaku anak. Aplikasi memisahkan akses menjadi dua peran:
+GrowWell adalah aplikasi web dan Android native untuk skrining awal kesehatan mental dan perilaku anak. Aplikasi memisahkan akses menjadi dua peran:
 
 - **Admin** mengelola pengguna, anak, skala, pertanyaan, ambang batas, materi edukasi, dan data psikolog.
 - **Pengasuh** mengelola data anak, mengisi skrining, melihat hasil dan riwayat perkembangan, membaca materi edukasi, serta menghubungi psikolog.
@@ -14,6 +14,7 @@ GrowWell adalah aplikasi web untuk skrining awal kesehatan mental dan perilaku a
 | Frontend | React 19, Vite, React Router, Tailwind CSS, Axios, i18next, Recharts |
 | Backend | Node.js, Fastify, JWT, Prisma ORM |
 | Database | MySQL 8 |
+| Android | Kotlin, Jetpack Compose, Retrofit/OkHttp, Room, WorkManager, Android Keystore |
 | Testing | Vitest, Testing Library |
 | Deployment | Docker Compose, Nginx |
 
@@ -42,6 +43,9 @@ growwell/
 |   |   |-- pages/          # Halaman admin, pengasuh, dan login
 |   |   `-- router.jsx      # Definisi route dan proteksi akses
 |   `-- vite.config.js      # Dev server dan proxy API
+|-- android/                # Aplikasi Android native untuk pengasuh
+|   |-- app/src/            # UI Compose, API client, Room, dan sinkronisasi
+|   `-- gradlew             # Gradle Wrapper project
 |-- deploy/                 # Konfigurasi Nginx dan panduan production
 |-- docker-compose.yml      # MySQL, backend, frontend, dan phpMyAdmin
 |-- GrowWell_PRD.md         # Product requirements
@@ -64,6 +68,12 @@ Prisma ORM
   |
   v
 MySQL 8
+
+Android Native
+  |
+  | HTTPS /api
+  v
+Fastify -> Prisma ORM -> MySQL 8
 ```
 
 Frontend menyimpan access token berumur pendek hanya di memori. Refresh token web dikirim sebagai cookie `HttpOnly`, dirotasi setiap kali dipakai, dan dapat dicabut melalui logout. Axios menyertakan access token pada request API; backend memverifikasi autentikasi dan peran sebelum menjalankan route admin atau pengasuh.
@@ -139,6 +149,33 @@ Buka `http://localhost:5173`. Vite meneruskan request `/api` dan `/uploads` ke b
 
 Akun tersebut hanya untuk development. Ganti kredensial sebelum lingkungan dapat diakses publik.
 
+### 4. Menjalankan aplikasi Android
+
+Prasyarat Android:
+
+- Android Studio dengan Android SDK Platform 36 dan Build-Tools 35.0.0.
+- JDK 17 atau Embedded JDK Android Studio yang kompatibel.
+- Emulator atau perangkat Android API 23 ke atas.
+
+Di Android Studio pilih **Open**, lalu buka folder `android/` secara langsung. Gunakan Android SDK milik Android Studio pada `android/local.properties`; file ini bersifat lokal dan tidak masuk Git.
+
+Build debug saat ini terhubung ke API VPS:
+
+```text
+https://www.growwell.id/api/
+```
+
+Untuk menggunakan backend lokal dari Android Emulator, ubah `API_BASE_URL` varian `debug` pada `android/app/build.gradle.kts` menjadi `http://10.0.2.2:3001/api/`.
+
+Build dari terminal:
+
+```powershell
+cd android
+.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+```
+
+APK debug tersedia di `android/app/build/outputs/apk/debug/app-debug.apk`. Dokumentasi lebih lengkap tersedia di [`android/README.md`](android/README.md).
+
 ## Menjalankan dengan Docker Compose
 
 Isi `.env` di root proyek, lalu jalankan semua service:
@@ -165,6 +202,34 @@ Service yang tersedia:
 Backend tidak diekspos langsung ke host pada konfigurasi Compose. Nginx di container frontend meneruskan request API ke service backend.
 
 Untuk deployment server dengan host Nginx, ikuti panduan di [`deploy/README.md`](deploy/README.md). Sebelum production, sesuaikan `ALLOWED_ORIGINS` pada `docker-compose.yml` dengan domain aplikasi.
+
+### Memperbarui production `www.growwell.id`
+
+Setelah perubahan sudah di-push ke `main`, jalankan pada VPS dari direktori repository:
+
+```sh
+git pull --ff-only origin main
+docker compose build backend frontend
+docker compose up -d --force-recreate backend frontend
+docker compose exec backend npx prisma migrate deploy
+docker compose ps
+docker compose logs --tail=100 backend frontend
+```
+
+Root `.env` production harus menggunakan origin HTTPS:
+
+```env
+PUBLIC_BASE_URL=https://www.growwell.id
+ALLOWED_ORIGINS=https://www.growwell.id
+```
+
+Verifikasi setelah deployment:
+
+```sh
+curl https://www.growwell.id/api/health
+```
+
+Respons yang diharapkan adalah `{"status":"ok","database":"ok"}`. Jangan menjalankan `npm run seed` pada VPS karena seed menghapus data aplikasi sebelum membuat data contoh.
 
 ## Pengujian dan pemeriksaan kode
 
@@ -199,6 +264,14 @@ cd frontend
 npm test
 npm run lint
 npm run build
+```
+
+Android:
+
+```powershell
+cd android
+.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+.\gradlew.bat :app:bundleRelease -PGROWWELL_API_BASE_URL=https://www.growwell.id/api/
 ```
 
 ## Progressive Web App (PWA)
@@ -241,9 +314,13 @@ Setelah deployment, verifikasi manifest, instalasi, mode offline, dan pembaruan 
 | `PORT` | Tidak | Port backend, default `3001` |
 | `UPLOAD_DIR` | Tidak | Direktori penyimpanan upload, default `uploads` |
 | `ALLOWED_ORIGINS` | Tidak | Daftar origin CORS dipisahkan koma; default `http://localhost:5173` |
+| `PUBLIC_BASE_URL` | Ya di production | Origin HTTPS publik untuk URL upload, misalnya `https://www.growwell.id` |
+| `ACCESS_TOKEN_TTL_SECONDS` | Tidak | Masa berlaku access token, default production `900` detik |
+| `REFRESH_TOKEN_TTL_DAYS` | Tidak | Masa berlaku refresh session, default production `30` hari |
 
 ## Dokumen terkait
 
 - [`GrowWell_PRD.md`](GrowWell_PRD.md) menjelaskan kebutuhan produk dan ruang lingkup fitur.
 - [`DESIGN.md`](DESIGN.md) menjelaskan arah visual dan komponen UI.
 - [`deploy/README.md`](deploy/README.md) menjelaskan prosedur deployment production dan verifikasi upload PDF.
+- [`android/README.md`](android/README.md) menjelaskan build, konfigurasi API, dan keamanan aplikasi Android.
