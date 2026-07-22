@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
-import { mockAnak, mockSkrining } from '../../../data/mockData'
 import { calculateAge } from '../../../lib/scoring'
 import * as api from '../../../api/pengasuh'
 import toast from 'react-hot-toast'
@@ -41,7 +40,7 @@ export default function ChildSelectPage() {
         }
       } catch (err) {
         console.error('Failed to load children:', err)
-        childrenList = mockAnak
+        childrenList = []
         toast.error(t('toast_error_api'))
       }
 
@@ -57,10 +56,6 @@ export default function ChildSelectPage() {
             }
           } catch (err) {
             console.error('Failed to load screenings:', err)
-            const fallback = mockSkrining
-              .filter((s) => s.anak_id === child.id)
-              .sort((a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining))
-            if (fallback[0]) screeningsMap[child.id] = fallback[0]
           }
         })
       )

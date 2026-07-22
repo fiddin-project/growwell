@@ -4,6 +4,7 @@ const requireRole = require('../../middleware/requireRole')
 const validateIdParam = require('../../middleware/validateIdParam')
 const ROLES = require('../../lib/roles')
 const { getEducationUploadDir } = require('../../lib/uploads')
+const { educationResponse } = require('../../lib/publicUrls')
 const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
@@ -190,7 +191,7 @@ async function routes(fastify, opts) {
     { preHandler: [authenticate, requireRole(ROLES.ADMIN)] },
     async (req, reply) => {
       try {
-        return reply.send(await db.edukasi.findMany())
+        return reply.send((await db.edukasi.findMany()).map(educationResponse))
       } catch (err) {
         req.log.error({ err }, 'Gagal mengambil data edukasi')
         return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
@@ -207,7 +208,7 @@ async function routes(fastify, opts) {
         fields = await parseMultipart(req, uploadDir)
         validateFields(fields)
         const edukasi = await db.edukasi.create({ data: toDatabaseData(fields) })
-        return reply.status(201).send(edukasi)
+        return reply.status(201).send(educationResponse(edukasi))
       } catch (err) {
         return sendError(req, reply, err, fields?.uploadedFile)
       }
@@ -236,7 +237,7 @@ async function routes(fastify, opts) {
         if (existing.tipe !== 'youtube' && (fields.uploadedFile || fields.tipe === 'youtube')) {
           deleteUploadedUrl(existing.url_atau_file, uploadDir)
         }
-        return reply.send(edukasi)
+        return reply.send(educationResponse(edukasi))
       } catch (err) {
         return sendError(req, reply, err, fields?.uploadedFile)
       }

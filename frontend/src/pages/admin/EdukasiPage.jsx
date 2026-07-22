@@ -11,7 +11,6 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import PageHeader from '../../components/ui/PageHeader'
 import SearchBar from '../../components/ui/SearchBar'
 import * as api from '../../api/admin'
-import { mockEdukasi } from '../../data/mockData'
 
 const FILTERS = [
   { key: 'all', label: 'edu_filter_all' },
@@ -22,7 +21,7 @@ const FILTERS = [
 
 export default function EdukasiPage() {
   const { t, i18n } = useTranslation()
-  const [edukasi, setEdukasi] = useState(() => [...mockEdukasi])
+  const [edukasi, setEdukasi] = useState([])
   const [filter, setFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')

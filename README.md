@@ -66,7 +66,7 @@ Prisma ORM
 MySQL 8
 ```
 
-Frontend menyimpan token JWT dan data pengguna di `localStorage`. Axios menyertakan token pada setiap request API. Backend memverifikasi autentikasi dan peran sebelum menjalankan route admin atau pengasuh.
+Frontend menyimpan access token berumur pendek hanya di memori. Refresh token web dikirim sebagai cookie `HttpOnly`, dirotasi setiap kali dipakai, dan dapat dicabut melalui logout. Axios menyertakan access token pada request API; backend memverifikasi autentikasi dan peran sebelum menjalankan route admin atau pengasuh.
 
 Saat skrining dikirim, backend menghitung skor tiap jawaban, menjumlahkannya per skala, menentukan kategori berdasarkan ambang batas, lalu menyimpan skrining, hasil skala, dan jawaban dalam satu transaksi database.
 
@@ -175,6 +175,22 @@ cd backend
 npm test
 npm run test:coverage
 ```
+
+Integration test backend wajib memakai database terpisah yang namanya berakhiran
+`_test`. Runner akan menolak database lain untuk mencegah seed atau pembersihan data
+production secara tidak sengaja:
+
+```powershell
+Copy-Item backend/.env.test.example backend/.env.test
+cd backend
+npm.cmd run test:db:up
+npm.cmd run test:db:prepare
+npm.cmd run test:all
+```
+
+Perintah yang sama pada Linux/macOS menggunakan `cp` dan `npm` sebagai pengganti
+`Copy-Item` dan `npm.cmd`. Database test berjalan pada `127.0.0.1:3308` dan disimpan
+di `tmpfs`, terpisah dari volume database development/production.
 
 Frontend:
 

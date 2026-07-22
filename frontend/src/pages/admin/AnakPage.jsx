@@ -4,7 +4,6 @@ import { Baby, Plus, Edit, Trash2, User, User2, CalendarDays } from 'lucide-reac
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal'
 import Input from '../../components/ui/Input'
-import Select from '../../components/ui/Select'
 import Button from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
@@ -12,7 +11,6 @@ import PageHeader from '../../components/ui/PageHeader'
 import SearchBar from '../../components/ui/SearchBar'
 import { formatDateLocale } from '../../lib/utils'
 import * as api from '../../api/admin'
-import { mockAnak, mockUsers } from '../../data/mockData'
 import { calculateAge } from '../../lib/scoring'
 
 const GENDER_FILTERS = [
@@ -23,8 +21,8 @@ const GENDER_FILTERS = [
 
 export default function AnakPage() {
   const { t, i18n } = useTranslation()
-  const [anak, setAnak] = useState(() => [...mockAnak])
-  const [userList, setUserList] = useState(() => [...mockUsers])
+  const [anak, setAnak] = useState([])
+  const [userList, setUserList] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterGender, setFilterGender] = useState('')

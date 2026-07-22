@@ -2,19 +2,15 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ShieldCheck, Save, RotateCcw, Edit } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Button from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import PageHeader from '../../components/ui/PageHeader'
 import * as api from '../../api/admin'
-import { mockAmbangBatas, mockSkala } from '../../data/mockData'
-
-const defaultAmbangBatas = [...mockAmbangBatas]
 
 export default function AmbangBatasPage() {
   const { t } = useTranslation()
-  const [data, setData] = useState(() => mockAmbangBatas.map((item) => ({ ...item })))
-  const [skalaList, setSkalaList] = useState(mockSkala)
+  const [data, setData] = useState([])
+  const [skalaList, setSkalaList] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -75,7 +71,6 @@ export default function AmbangBatasPage() {
       setIsEditing(false)
     } catch (err) {
       console.error('Failed to reset thresholds:', err)
-      setData(defaultAmbangBatas.map((item) => ({ ...item })))
       toast.error(t('toast_error_api'))
     } finally {
       setResetting(false)

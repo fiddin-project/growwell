@@ -59,6 +59,8 @@ export default function UsersPage() {
   }, [t]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // Initial network synchronization.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers(search, page)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

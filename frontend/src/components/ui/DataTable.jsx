@@ -11,6 +11,8 @@ export default function DataTable({ columns, data, searchable = true, pageSize =
   const [page, setPage] = useState(0)
 
   useEffect(() => {
+    // Reset pagination when the backing dataset is replaced.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(0)
   }, [data])
 

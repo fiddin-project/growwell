@@ -57,6 +57,8 @@ export default function SkalaPage() {
   }, [t]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // Initial network synchronization.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSkala(search, page)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

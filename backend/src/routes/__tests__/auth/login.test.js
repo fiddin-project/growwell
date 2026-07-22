@@ -35,7 +35,7 @@ describe('POST /api/auth/login', () => {
       url: '/api/auth/login',
       payload: {},
     })
-    expect([401, 500]).toContain(res.statusCode)
+    expect(res.statusCode).toBe(400)
   })
 })
 

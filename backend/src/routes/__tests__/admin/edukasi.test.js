@@ -74,7 +74,7 @@ function createDb() {
 }
 
 function authHeaders(app, headers) {
-  const token = app.jwt.sign({ id: 1, role: 'ADMIN' })
+  const token = app.jwt.sign({ id: 1, role: 'ADMIN', type: 'access' })
   return { ...headers, authorization: `Bearer ${token}` }
 }
 

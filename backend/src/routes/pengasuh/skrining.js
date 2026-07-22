@@ -4,6 +4,40 @@ const requireRole = require('../../middleware/requireRole')
 const validateIdParam = require('../../middleware/validateIdParam')
 const ROLES = require('../../lib/roles')
 const { determineKategori } = require('../../services/scoring')
+const crypto = require('node:crypto')
+const { getScreeningForm } = require('../../services/screeningForm')
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function submissionHash(anakId, revision, answers) {
+  const normalized = [...answers]
+    .map((item) => ({ id_pertanyaan: Number(item.id_pertanyaan), jawaban: item.jawaban }))
+    .sort((a, b) => a.id_pertanyaan - b.id_pertanyaan)
+  return crypto.createHash('sha256')
+    .update(JSON.stringify({ anak_id: Number(anakId), instrument_revision: revision || null, jawaban: normalized }))
+    .digest('hex')
+}
+
+function storedScreeningResponse(screening, replayed = false) {
+  return {
+    id: screening.id,
+    anak_id: screening.anak_id,
+    total_score: screening.total_score,
+    kategori_total: screening.kategori_total,
+    instrument_revision: screening.instrument_revision,
+    per_skala: (screening.hasilSkala || []).map((item) => ({
+      id_skala: item.id_skala,
+      skor: item.skor,
+      kategori: item.kategori,
+    })),
+    jawaban: (screening.jawaban || []).map((item) => ({
+      id_pertanyaan: item.id_pertanyaan,
+      jawaban: item.jawaban,
+      skor_diberikan: item.skor_diberikan,
+    })),
+    replayed,
+  }
+}
 
 async function routes(fastify, opts) {
   fastify.get('/api/pengasuh/skrining/:anakId', { preHandler: [authenticate, requireRole(ROLES.PENGASUH)] }, async (req, reply) => {
@@ -11,19 +45,19 @@ async function routes(fastify, opts) {
       const { anakId } = req.params
 
       const anak = await prisma.anak.findUnique({ where: { id: parseInt(anakId) } })
-      if (!anak || (anak.created_by !== req.user.id && !anak.created_by_admin)) {
+      if (!anak) {
         return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
       }
 
       const skrining = await prisma.skrining.findMany({
-        where: {
-          anak_id: parseInt(anakId),
-          pengasuh_id: req.user.id,
+        where: { anak_id: parseInt(anakId) },
+        include: {
+          pengasuh: { select: { id: true, nama_lengkap: true } },
         },
         orderBy: { tanggal_skrining: 'desc' },
       })
 
-      return reply.send(skrining)
+      return reply.send(skrining.map(({ pengasuh, ...item }) => ({ ...item, performer: pengasuh })))
     } catch (err) {
       return reply.status(500).send({ error: 'Gagal mengambil data skrining' })
     }
@@ -37,6 +71,7 @@ async function routes(fastify, opts) {
         where: { id: parseInt(id) },
         include: {
           anak: true,
+          pengasuh: { select: { id: true, nama_lengkap: true } },
           hasilSkala: true,
           jawaban: {
             include: {
@@ -49,16 +84,13 @@ async function routes(fastify, opts) {
       if (!skrining) {
         return reply.status(404).send({ error: 'Data skrining tidak ditemukan' })
       }
-      if (skrining.pengasuh_id !== req.user.id) {
-        return reply.status(403).send({ error: 'Akses ditolak' })
-      }
-
       const result = {
         id: skrining.id,
         anak_id: skrining.anak_id,
         tanggal_skrining: skrining.tanggal_skrining,
         total_score: skrining.total_score,
         kategori_total: skrining.kategori_total,
+        performer: skrining.pengasuh,
         per_skala: skrining.hasilSkala.map(hs => ({
           id_skala: hs.id_skala,
           skor: hs.skor,
@@ -74,27 +106,55 @@ async function routes(fastify, opts) {
 
   fastify.post('/api/pengasuh/skrining', { preHandler: [authenticate, requireRole(ROLES.PENGASUH)] }, async (req, reply) => {
     try {
-      const { anak_id, jawaban } = req.body
+      const { anak_id, jawaban, client_submission_id, instrument_revision } = req.body || {}
 
       if (!anak_id || !jawaban || !Array.isArray(jawaban) || jawaban.length === 0) {
         return reply.status(400).send({ error: 'anak_id dan jawaban wajib diisi' })
       }
+      if (client_submission_id && !UUID_PATTERN.test(client_submission_id)) {
+        return reply.status(400).send({ error: 'client_submission_id tidak valid', code: 'INVALID_SUBMISSION_ID' })
+      }
 
-      const anak = await prisma.anak.findUnique({ where: { id: parseInt(anak_id) } })
+      const currentHash = submissionHash(anak_id, instrument_revision, jawaban)
+      if (client_submission_id) {
+        const existingSubmission = await prisma.skrining.findUnique({
+          where: { client_submission_id },
+          include: { hasilSkala: true, jawaban: true },
+        })
+        if (existingSubmission) {
+          if (existingSubmission.submission_hash !== currentHash) {
+            return reply.status(409).send({ error: 'Submission ID telah digunakan untuk payload lain', code: 'IDEMPOTENCY_CONFLICT' })
+          }
+          return reply.status(200).send(storedScreeningResponse(existingSubmission, true))
+        }
+      }
+
+      const [anak, screeningForm] = await Promise.all([
+        prisma.anak.findUnique({ where: { id: parseInt(anak_id) } }),
+        getScreeningForm(prisma),
+      ])
       if (!anak) {
         return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
       }
-      if (anak.created_by !== req.user.id && !anak.created_by_admin) {
-        return reply.status(403).send({ error: 'Akses ditolak' })
+      if (instrument_revision && instrument_revision !== screeningForm.instrument_revision) {
+        return reply.status(409).send({ error: 'Instrumen skrining telah berubah', code: 'INSTRUMENT_REVISION_STALE' })
       }
-
-      const ambangBatas = await prisma.ambangBatas.findMany()
+      const ambangBatas = screeningForm.thresholds
 
       const pertanyaanIds = jawaban.map(item => parseInt(item.id_pertanyaan))
-      const pertanyaanList = await prisma.pertanyaan.findMany({
-        where: { id: { in: pertanyaanIds } },
-        include: { skala: true },
-      })
+      const uniqueQuestionIds = new Set(pertanyaanIds)
+      const expectedQuestionIds = new Set(screeningForm.questions.map((item) => item.id))
+      if (
+        jawaban.length !== screeningForm.questions.length ||
+        uniqueQuestionIds.size !== jawaban.length ||
+        [...uniqueQuestionIds].some((id) => !expectedQuestionIds.has(id))
+      ) {
+        return reply.status(400).send({
+          error: 'Semua pertanyaan harus dijawab tepat satu kali',
+          code: 'ANSWERS_INCOMPLETE_OR_DUPLICATE',
+        })
+      }
+      const pertanyaanList = screeningForm.questions
 
       const pertanyaanMap = {}
       for (const p of pertanyaanList) {
@@ -168,6 +228,9 @@ async function routes(fastify, opts) {
             pengasuh_id: req.user.id,
             total_score: totalScore,
             kategori_total: kategoriTotal,
+            client_submission_id: client_submission_id || null,
+            submission_hash: client_submission_id ? currentHash : null,
+            instrument_revision: screeningForm.instrument_revision,
           },
         })
 
@@ -198,13 +261,27 @@ async function routes(fastify, opts) {
           anak_id: skrining.anak_id,
           total_score: skrining.total_score,
           kategori_total: skrining.kategori_total,
+          instrument_revision: screeningForm.instrument_revision,
           per_skala: perSkala,
           jawaban: jawabanRecords,
+          replayed: false,
         }
       })
 
       return reply.status(201).send(result)
     } catch (err) {
+      if (err?.code === 'P2002' && req.body?.client_submission_id) {
+        const existingSubmission = await prisma.skrining.findUnique({
+          where: { client_submission_id: req.body.client_submission_id },
+          include: { hasilSkala: true, jawaban: true },
+        })
+        const hash = submissionHash(req.body.anak_id, req.body.instrument_revision, req.body.jawaban || [])
+        if (existingSubmission?.submission_hash === hash) {
+          return reply.status(200).send(storedScreeningResponse(existingSubmission, true))
+        }
+        return reply.status(409).send({ error: 'Submission ID telah digunakan untuk payload lain', code: 'IDEMPOTENCY_CONFLICT' })
+      }
+      req.log.error({ err }, 'Gagal menyimpan data skrining')
       return reply.status(500).send({ error: 'Gagal menyimpan data skrining' })
     }
   })

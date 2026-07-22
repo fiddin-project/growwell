@@ -89,20 +89,20 @@ GrowWell addresses all three gaps in a single, accessible web application.
 | Pengasuh | `pengasuh_1` | `123` |
 | Pengasuh | `pengasuh_2` | `123` |
 
-- Session managed via **JWT** stored in `localStorage` under the keys `growwell_token` and `growwell_user`.
+- Session uses a short-lived access JWT held in memory plus a rotating, revocable refresh session. Web refresh tokens use an `HttpOnly` cookie; native Android receives a token for Keystore-backed storage.
 - Token payload contains: `{ id, role, nama_lengkap }`.
 - After login, the user is redirected to their role-specific dashboard:
   - `ADMIN` → `/admin/dashboard`
   - `PENGASUH` → `/pengasuh/dashboard`
-- On app load, if a non-mock token exists in `localStorage`, the frontend calls `GET /api/auth/me` to validate and restore the session; if validation fails, the token is cleared.
+- On app load, the frontend calls `POST /api/auth/refresh` to restore the session; failure returns the user to login.
 - **Rate limiting**: Login endpoint is rate-limited to **5 attempts per 5 minutes** (via `@fastify/rate-limit`). Global rate limit is **100 requests per minute**.
-- **Offline/mock fallback**: If the API call fails, the frontend falls back to a hardcoded mock user list to support development without a live backend. Mock sessions use tokens prefixed with `mock-`.
+- Production never substitutes mock authentication or health data after an API failure. Failures are shown explicitly.
 
 ### 4.2 Logout
 
 - Available in the sidebar for both roles.
 - Opens a confirmation dialog (primary variant) before logging out.
-- Clears `growwell_token` and `growwell_user` from `localStorage` and redirects to `/login`.
+- Revokes the server refresh session, clears the refresh cookie and in-memory access token, then redirects to `/login`.
 - Modal footer buttons stack vertically on very small screens.
 
 ### 4.3 Route Protection
@@ -370,7 +370,7 @@ The API returns `{ recentScreenings: [...] }` containing the last 5 screening re
 
 Route: `/pengasuh/screening` | API: `GET /api/pengasuh/anak`
 
-- Displays a list of children belonging to the logged-in pengasuh (`created_by = req.user.id`), ordered by `created_at DESC`.
+- Displays the global child list for every authenticated caregiver, ordered by `created_at DESC`. `created_by` is audit metadata only.
 - A **"+ Tambah Anak Baru"** button navigates to `/pengasuh/screening/new-child`.
 
 **Registering a new child** (`POST /api/pengasuh/anak`):
@@ -383,9 +383,9 @@ Route: `/pengasuh/screening` | API: `GET /api/pengasuh/anak`
 
 Child is created with `created_by: req.user.id` and `created_by_admin: false`.
 
-**Pengasuh can also edit their own children** via `PUT /api/pengasuh/anak/:id` (name, DOB, gender). Ownership is verified — pengasuh can only edit children where `created_by === req.user.id`. There is no delete endpoint on the pengasuh side.
+**Pengasuh can edit any child** via `PUT /api/pengasuh/anak/:id` (name, DOB, gender). They may delete a child without screening history; history continues to block deletion.
 
-> Admin-created children (where `created_by` is the admin's ID) are **not** shown in the pengasuh's child list because the filter is `created_by = req.user.id`. Assignment of admin-created children to a specific pengasuh is not currently implemented.
+> Admin-created and caregiver-created children are visible to all admins and caregivers. Creator identity is retained only for audit display.
 
 > On API failure when creating a new child, the user is redirected to the child list (no phantom data created).
 
@@ -403,7 +403,7 @@ Route: `/pengasuh/screening/:childId` | API: `GET /api/pengasuh/pertanyaan`
 - A **progress bar** and `answered/total` counter updates in real-time as answers are selected. Progress bar is responsive: full-width on mobile, fixed 200px on desktop.
 - A success indicator (green checkmark) appears when all questions are answered.
 - The **Submit** button is disabled until all questions are answered.
-- If the API call fails, the page falls back to mock question data.
+- If the API call fails, the page shows an error and does not substitute sample questions.
 
 #### Step 3 — Submission & Instant Result
 
@@ -421,7 +421,7 @@ Route: `/pengasuh/screening/:childId/result/:skriningId` | API: `POST /api/penga
 ```
 
 **Backend scoring process:**
-1. Verifies the child belongs to the requesting pengasuh (`anak.created_by === req.user.id`); returns 403 otherwise.
+1. Verifies the child exists. Any authenticated caregiver may screen any child; the submitting caregiver is stored as performer audit metadata.
 2. Fetches all `AmbangBatas` rows.
 3. Fetches all submitted `Pertanyaan` rows (with their `Skala`).
 4. Calculates `skor_diberikan` per answer using the question's score fields.
@@ -460,7 +460,7 @@ Route: `/pengasuh/edukasi` | API: `GET /api/pengasuh/edukasi`
 
 **Detail page:** `/pengasuh/monitoring/:childId` | API: `GET /api/pengasuh/monitoring/:anakId`
 
-- Verifies the child belongs to the requesting pengasuh (`anak.created_by === req.user.id`); returns 404 otherwise.
+- Verifies the child exists and returns its complete history across all caregiver performers.
 - Response shape:
   ```json
   {
@@ -481,7 +481,7 @@ Route: `/pengasuh/edukasi` | API: `GET /api/pengasuh/edukasi`
 - The chart legend displays fixed ranges: "Normal (0-13)", "Borderline (14-19)", "Abnormal (20-40)" which do not update with configurable thresholds
   - Data sorted ascending by date before rendering
 - **Scale Detail Modal** (size `lg`): Table showing each scale's score and category badge for the selected screening session.
-- Falls back to mock data if the API call fails.
+- Shows an explicit error if the API call fails.
 
 ---
 
@@ -794,14 +794,14 @@ rate-limit         → Global: 100 req/min; Login: 5 attempts/5 min
 
 | Category | Requirement |
 |---|---|
-| **Security** | Passwords hashed with bcrypt (10 rounds); JWT-based auth (8h expiry); role guards on all backend routes via `authenticate` + `requireRole` middleware; CORS restricted to configured origins; ownership checks on all pengasuh data access; rate limiting on login (5/5min) and globally (100/min); field allowlisting on multipart uploads; ID parameter validation on all `/:id` routes |
+| **Security** | Passwords hashed with bcrypt; short-lived access JWT plus hashed rotating refresh sessions; role guards on all protected routes; HTTPS production origin/CORS restrictions; creator and performer audit fields do not grant ownership; login/global rate limiting; field allowlisting on multipart uploads; ID validation |
 | **Performance** | Dashboard uses aggregated queries and raw SQL for monthly grouping; paginated user list (server-side `skip`/`take`) |
 | **File Validation** | PDF upload: max 10MB enforced by `@fastify/multipart`; UUID-named files to prevent collisions; field allowlisting prevents injection |
 | **Data Integrity** | Reset thresholds wrapped in Prisma `$transaction`; BigInt from `$queryRaw` serialized to Number; no optimistic mutations on API failure |
 | **Responsive Design** | Mobile-first responsive layout using Tailwind breakpoints (`sm:640px`, `md:768px`, `lg:1024px`). Sidebar collapses to hamburger menu below 768px with overlay backdrop. DataTable columns support `hideOnMobile` prop to hide non-essential columns on small screens. Form grids stack vertically on mobile (`grid-cols-1 sm:grid-cols-2`). Card/stat-card padding responsive (16px mobile, 24px desktop). Modal footer buttons stack vertically on very small screens. Touch targets meet WCAG 44px minimum (pagination, action buttons, search clear). Questionnaire progress bar responsive width. Login decorative circles resize on mobile. PageHeader stacks vertically on mobile. Questionnaire answer buttons full-width with 48px min-height |
 | **Error Handling** | Friendly error messages in the active language; toast notifications for all CRUD actions; API failures show error states (not silent fallbacks); modal stays open on save failure for retry |
 | **Accessibility** | ARIA labels on action buttons; `aria-busy` on loading DataTables; `role="status"` on badges; `aria-label` on search inputs; semantic `<caption>` on tables; focus trap in modals with dynamic element re-querying |
-| **Offline Fallback** | Frontend includes mock data for all entities, enabling UI development without a running backend |
+| **Offline Behavior** | Web shows explicit offline/API errors. Native Android caches reads and drafts and uses idempotent queued screening submission. |
 | **Scalability** | Prisma ORM enables schema migrations; MySQL supports multi-tenancy growth |
 
 ---

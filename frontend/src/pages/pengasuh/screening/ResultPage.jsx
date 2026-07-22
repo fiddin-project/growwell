@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
-import { mockSkrining, mockAnak, mockSkala } from '../../../data/mockData'
 import * as api from '../../../api/pengasuh'
 import Badge from '../../../components/ui/Badge'
 import Button from '../../../components/ui/Button'
@@ -17,7 +16,7 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(true)
   const [skrining, setSkrining] = useState(null)
   const [child, setChild] = useState(null)
-  const [skalaList, setSkalaList] = useState(mockSkala)
+  const [skalaList, setSkalaList] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -29,8 +28,7 @@ export default function ResultPage() {
         }
       } catch (err) {
         console.error('Failed to load screening detail:', err)
-        const found = mockSkrining.find((s) => s.id === parseInt(skriningId))
-        if (found && !cancelled) setSkrining(found)
+        if (!cancelled) setSkrining(null)
       }
 
       try {
@@ -40,14 +38,10 @@ export default function ResultPage() {
           : null
         if (foundChild && !cancelled) {
           setChild(foundChild)
-        } else {
-          const mockChild = mockAnak.find((a) => a.id === parseInt(childId))
-          if (mockChild && !cancelled) setChild(mockChild)
         }
       } catch (err) {
         console.error('Failed to load children:', err)
-        const mockChild = mockAnak.find((a) => a.id === parseInt(childId))
-        if (mockChild && !cancelled) setChild(mockChild)
+        if (!cancelled) setChild(null)
       }
 
       try {
@@ -55,7 +49,6 @@ export default function ResultPage() {
         if (skala && !cancelled) setSkalaList(skala)
       } catch (err) {
         console.error('Failed to load skala:', err)
-        // keep mockSkala fallback
       }
     }
     fetchResult().finally(() => { if (!cancelled) setLoading(false) })

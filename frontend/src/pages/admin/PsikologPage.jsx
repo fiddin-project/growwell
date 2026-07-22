@@ -11,11 +11,10 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import PageHeader from '../../components/ui/PageHeader'
 import SearchBar from '../../components/ui/SearchBar'
 import * as api from '../../api/admin'
-import { mockPsikolog } from '../../data/mockData'
 
 export default function PsikologPage() {
   const { t, i18n } = useTranslation()
-  const [psikolog, setPsikolog] = useState(() => [...mockPsikolog])
+  const [psikolog, setPsikolog] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')

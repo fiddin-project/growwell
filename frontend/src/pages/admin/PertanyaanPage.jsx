@@ -11,12 +11,11 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import DataTable from '../../components/ui/DataTable'
 import PageHeader from '../../components/ui/PageHeader'
 import * as api from '../../api/admin'
-import { mockPertanyaan, mockSkala } from '../../data/mockData'
 
 export default function PertanyaanPage() {
   const { t, i18n } = useTranslation()
-  const [pertanyaan, setPertanyaan] = useState(() => [...mockPertanyaan])
-  const [scales, setScales] = useState(() => [...mockSkala])
+  const [pertanyaan, setPertanyaan] = useState([])
+  const [scales, setScales] = useState([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)

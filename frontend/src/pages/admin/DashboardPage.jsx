@@ -6,7 +6,6 @@ import PageHeader from '../../components/ui/PageHeader'
 import StatCard from '../../components/ui/StatCard'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import * as api from '../../api/admin'
-import { mockUsers, mockSkrining } from '../../data/mockData'
 
 const COLORS = ['#15803d', '#92400e', '#93000a']
 
@@ -45,8 +44,8 @@ export default function DashboardPage() {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const totalPengasuh = dashData?.totalPengasuh ?? mockUsers.filter((u) => u.role === 'PENGASUH').length
-  const totalSkrining = dashData?.totalSkrining ?? mockSkrining.length
+  const totalPengasuh = dashData?.totalPengasuh ?? 0
+  const totalSkrining = dashData?.totalSkrining ?? 0
 
   const screeningThisMonth = useMemo(() => {
     if (dashData?.skriningPerBulan) {
@@ -55,10 +54,7 @@ export default function DashboardPage() {
       const entry = normalized.find((m) => m.month === currentLabel)
       return entry?.count ?? 0
     }
-    return mockSkrining.filter((s) => {
-      const d = new Date(s.tanggal_skrining)
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear
-    }).length
+    return 0
   }, [dashData, currentMonth, currentYear])
 
   const percentAbnormal = useMemo(() => {
@@ -67,8 +63,7 @@ export default function DashboardPage() {
       const abnormal = cats.find((d) => d.name === 'Abnormal')
       return abnormal ? ((abnormal.value / totalSkrining) * 100).toFixed(1) : '0'
     }
-    const abnormalCount = mockSkrining.filter((s) => s.kategori_total === 'Abnormal').length
-    return totalSkrining > 0 ? ((abnormalCount / totalSkrining) * 100).toFixed(1) : '0'
+    return '0'
   }, [dashData, totalSkrining])
 
   const monthlyData = useMemo(() => {
@@ -83,10 +78,7 @@ export default function DashboardPage() {
       const d = new Date(currentYear, currentMonth - i, 1)
       months.push({
         month: monthLabels[d.getMonth()],
-        count: mockSkrining.filter((s) => {
-          const sd = new Date(s.tanggal_skrining)
-          return sd.getMonth() === d.getMonth() && sd.getFullYear() === d.getFullYear()
-        }).length,
+        count: 0,
       })
     }
     return months
@@ -96,11 +88,7 @@ export default function DashboardPage() {
     if (dashData?.distribusiKategori) {
       return normalizeCategories(dashData.distribusiKategori)
     }
-    const counts = { Normal: 0, Borderline: 0, Abnormal: 0 }
-    mockSkrining.forEach((s) => {
-      if (counts[s.kategori_total] !== undefined) counts[s.kategori_total]++
-    })
-    return Object.entries(counts).map(([name, value]) => ({ name, value }))
+    return ['Normal', 'Borderline', 'Abnormal'].map((name) => ({ name, value: 0 }))
   }, [dashData])
 
   if (loading) return <LoadingSpinner fullPage />

@@ -1,0 +1,16 @@
+services:
+  mysql-test:
+    image: mysql:8.0
+    container_name: growwell_mysql_test
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_TEST_ROOT_PASSWORD:-growwell_test_only}
+      MYSQL_DATABASE: growwell_test
+    ports:
+      - "127.0.0.1:3308:3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 3s
+      timeout: 3s
+      retries: 20

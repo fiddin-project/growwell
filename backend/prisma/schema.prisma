@@ -16,6 +16,26 @@ model User {
   created_at    DateTime   @default(now())
   skrining      Skrining[]
   anak          Anak[]
+  refresh_sessions RefreshSession[]
+}
+
+model RefreshSession {
+  id             String    @id @default(uuid()) @db.VarChar(36)
+  family_id      String    @db.VarChar(36)
+  user_id        Int
+  token_hash     String    @unique @db.Char(64)
+  expires_at     DateTime
+  revoked_at     DateTime?
+  replaced_by_id String?   @db.VarChar(36)
+  created_at     DateTime  @default(now())
+  last_used_at   DateTime?
+  user_agent     String?   @db.VarChar(255)
+  ip_address     String?   @db.VarChar(64)
+  user           User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([family_id])
+  @@index([expires_at])
 }
 
 model Anak {
@@ -68,6 +88,9 @@ model Skrining {
   tanggal_skrining DateTime  @default(now())
   total_score     Int
   kategori_total  String     @db.VarChar(20)
+  client_submission_id String? @unique @db.VarChar(36)
+  submission_hash String?     @db.Char(64)
+  instrument_revision String? @db.VarChar(80)
   anak            Anak       @relation(fields: [anak_id], references: [id], onDelete: Restrict)
   pengasuh        User       @relation(fields: [pengasuh_id], references: [id], onDelete: Restrict)
   hasilSkala      HasilSkala[]

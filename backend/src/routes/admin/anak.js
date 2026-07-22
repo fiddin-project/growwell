@@ -16,8 +16,14 @@ async function routes(fastify, opts) {
         }
         const anakList = await prisma.anak.findMany({
           where,
+          include: {
+            pembuat: {
+              select: { id: true, nama_lengkap: true, role: true },
+            },
+          },
+          orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
         })
-        return reply.send(anakList)
+        return reply.send(anakList.map(({ pembuat, ...item }) => ({ ...item, creator: pembuat })))
       } catch (err) {
         return reply.status(500).send({ error: 'Terjadi kesalahan pada server' })
       }

@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
-import { mockAnak, mockSkrining, mockSkala, mockAmbangBatas } from '../../data/mockData'
 import { calculateAge } from '../../lib/scoring'
 import * as api from '../../api/pengasuh'
 import DataTable from '../../components/ui/DataTable'
@@ -46,8 +45,8 @@ export default function MonitoringDetailPage() {
   const [child, setChild] = useState(null)
   const [screenings, setScreenings] = useState([])
   const [selectedScreening, setSelectedScreening] = useState(null)
-  const [skalaList, setSkalaList] = useState(mockSkala)
-  const [thresholds, setThresholds] = useState(mockAmbangBatas)
+  const [skalaList, setSkalaList] = useState([])
+  const [thresholds, setThresholds] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -56,23 +55,22 @@ export default function MonitoringDetailPage() {
         const data = await api.getMonitoring(parseInt(childId))
         if (data && !cancelled) {
           if (data.anak) setChild(data.anak)
+          if (data.threshold_total) {
+            setThresholds([{ id_skala: null, ...data.threshold_total }])
+          }
           if (data.riwayat) {
             const sorted = [...data.riwayat].sort(
               (a, b) => new Date(a.tanggal_skrining) - new Date(b.tanggal_skrining)
             )
             setScreenings(sorted)
-            return
           }
         }
       } catch (err) {
         console.error('Failed to load monitoring data:', err)
-        const fallbackChild = mockAnak.find((a) => a.id === parseInt(childId))
-        if (fallbackChild && !cancelled) setChild(fallbackChild)
-
-        const fallbackScreenings = mockSkrining
-          .filter((s) => s.anak_id === parseInt(childId))
-          .sort((a, b) => new Date(a.tanggal_skrining) - new Date(b.tanggal_skrining))
-        if (!cancelled) setScreenings(fallbackScreenings)
+        if (!cancelled) {
+          setChild(null)
+          setScreenings([])
+        }
       }
 
       try {
@@ -80,16 +78,8 @@ export default function MonitoringDetailPage() {
         if (skala && !cancelled) setSkalaList(skala)
       } catch (err) {
         console.error('Failed to load skala:', err)
-        // keep mockSkala fallback
       }
 
-      try {
-        const ambang = await import('../../api/admin').then((m) => m.getAmbangBatas())
-        if (ambang && !cancelled) setThresholds(ambang)
-      } catch (err) {
-        console.error('Failed to load thresholds:', err)
-        // keep mockAmbangBatas fallback
-      }
     }
     fetchMonitoring().finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }

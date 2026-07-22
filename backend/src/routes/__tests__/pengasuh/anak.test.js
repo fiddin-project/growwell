@@ -3,6 +3,7 @@ const { buildApp, signToken } = require('../../../../tests/helper')
 let app
 let pengasuhToken
 let pengasuh2Token
+let sharedChildId
 
 beforeAll(async () => {
   app = await buildApp()
@@ -30,7 +31,7 @@ describe('GET /api/pengasuh/anak', () => {
     expect(res.statusCode).toBe(403)
   })
 
-  it('returns owned + admin-created children for pengasuh', async () => {
+  it('returns every child for a caregiver', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/pengasuh/anak',
@@ -41,7 +42,7 @@ describe('GET /api/pengasuh/anak', () => {
     expect(Array.isArray(data)).toBe(true)
   })
 
-  it('returns different results for different pengasuh', async () => {
+  it('returns the same child IDs for different caregivers', async () => {
     const res1 = await app.inject({
       method: 'GET',
       url: '/api/pengasuh/anak',
@@ -54,6 +55,9 @@ describe('GET /api/pengasuh/anak', () => {
     })
     expect(res1.statusCode).toBe(200)
     expect(res2.statusCode).toBe(200)
+    const ids1 = res1.json().map((item) => item.id).sort((a, b) => a - b)
+    const ids2 = res2.json().map((item) => item.id).sort((a, b) => a - b)
+    expect(ids1).toEqual(ids2)
   })
 })
 
@@ -78,6 +82,7 @@ describe('POST /api/pengasuh/anak', () => {
     const data = JSON.parse(res.payload)
     expect(data.nama).toBe('Anak Test')
     expect(data.created_by_admin).toBe(false)
+    sharedChildId = data.id
   })
 
   it('returns 400 for missing fields', async () => {
@@ -102,25 +107,26 @@ describe('POST /api/pengasuh/anak', () => {
 })
 
 describe('PUT /api/pengasuh/anak/:id', () => {
-  it('returns 403 or 404 when updating other pengasuh child', async () => {
+  it('allows another caregiver to update a child', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: '/api/pengasuh/anak/1',
+      url: `/api/pengasuh/anak/${sharedChildId}`,
       headers: { authorization: `Bearer ${pengasuh2Token}` },
       payload: { nama: 'Hacked' },
     })
-    expect([403, 404]).toContain(res.statusCode)
+    expect(res.statusCode).toBe(200)
+    expect(res.json().nama).toBe('Hacked')
   })
 })
 
 describe('DELETE /api/pengasuh/anak/:id', () => {
-  it('returns 403 or 404 when deleting other pengasuh child', async () => {
+  it('allows another caregiver to delete a history-free child', async () => {
     const res = await app.inject({
       method: 'DELETE',
-      url: '/api/pengasuh/anak/1',
+      url: `/api/pengasuh/anak/${sharedChildId}`,
       headers: { authorization: `Bearer ${pengasuh2Token}` },
     })
-    expect([403, 404]).toContain(res.statusCode)
+    expect(res.statusCode).toBe(200)
   })
 
   it('returns 400 for invalid id', async () => {

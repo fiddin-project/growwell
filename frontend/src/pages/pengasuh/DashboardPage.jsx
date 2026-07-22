@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { Stethoscope, BookOpen, LineChart, MessageCircle, LayoutDashboard } from 'lucide-react'
-import { mockSkrining, mockAnak } from '../../data/mockData'
 import * as api from '../../api/pengasuh'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import PageHeader from '../../components/ui/PageHeader'
@@ -34,9 +33,7 @@ export default function DashboardPage() {
         }
       } catch (err) {
         console.error('Failed to load dashboard:', err)
-        const pengasuhSkrining = mockSkrining
-          .sort((a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining))
-        if (!cancelled) setRecentActivity(pengasuhSkrining.slice(0, 3))
+        if (!cancelled) setRecentActivity([])
       }
     }
     fetchDashboard().finally(() => { if (!cancelled) setLoading(false) })
@@ -45,8 +42,7 @@ export default function DashboardPage() {
 
   const getChildName = (screening) => {
     if (screening.anak?.nama) return screening.anak.nama
-    const child = mockAnak.find((a) => a.id === screening.anak_id)
-    return child ? child.nama : '-'
+    return '-'
   }
 
   const handleKeyDown = (e, to) => {

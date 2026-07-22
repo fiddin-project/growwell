@@ -4,6 +4,7 @@ describe('authenticate middleware', () => {
   function createReq() {
     return {
       jwtVerify: vi.fn(),
+      user: { id: 1, role: 'ADMIN', type: 'access' },
     }
   }
 
@@ -39,5 +40,14 @@ describe('authenticate middleware', () => {
     const reply = createReply()
     await authenticate(req, reply)
     expect(reply.status).toHaveBeenCalledWith(401)
+  })
+
+  it('rejects a valid JWT that is not an access token', async () => {
+    const req = createReq()
+    req.user.type = 'refresh'
+    const reply = createReply()
+    await authenticate(req, reply)
+    expect(reply.status).toHaveBeenCalledWith(401)
+    expect(reply.send).toHaveBeenCalledWith({ error: 'Token tidak valid', code: 'INVALID_TOKEN_TYPE' })
   })
 })

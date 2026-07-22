@@ -6,6 +6,7 @@ frontend/dist/
 
 # Environment files
 .env
+.env.test
 .env.local
 .env.production
 .env*.local

@@ -1,67 +1,16 @@
 require('dotenv').config()
 
-if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET environment variable is not set.')
-  process.exit(1)
-}
+const { buildApp } = require('./app')
 
-const fastify = require('fastify')({ logger: true })
-const { MAX_UPLOAD_SIZE, getUploadRoot } = require('./lib/uploads')
-
-fastify.register(require('@fastify/cors'), {
-  origin: process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:5173'],
-  credentials: true,
-})
-
-fastify.register(require('@fastify/helmet'))
-
-fastify.addHook('preHandler', require('./middleware/sanitize'))
-
-fastify.register(require('@fastify/jwt'), {
-  secret: process.env.JWT_SECRET,
-})
-
-fastify.register(require('@fastify/rate-limit'), {
-  max: 100,
-  timeWindow: '1 minute',
-})
-
-fastify.register(require('@fastify/multipart'), {
-  limits: { fileSize: MAX_UPLOAD_SIZE },
-})
-
-fastify.register(require('@fastify/static'), {
-  root: getUploadRoot(),
-  prefix: '/uploads/',
-})
-
-fastify.register(require('./routes/auth/login'))
-fastify.register(require('./routes/auth/me'))
-fastify.register(require('./routes/admin/users'))
-fastify.register(require('./routes/admin/skala'))
-fastify.register(require('./routes/admin/pertanyaan'))
-fastify.register(require('./routes/admin/ambangBatas'))
-fastify.register(require('./routes/admin/anak'))
-fastify.register(require('./routes/admin/edukasi'))
-fastify.register(require('./routes/admin/psikolog'))
-fastify.register(require('./routes/admin/dashboard'))
-fastify.register(require('./routes/pengasuh/anak'))
-fastify.register(require('./routes/pengasuh/skala'))
-fastify.register(require('./routes/pengasuh/pertanyaan'))
-fastify.register(require('./routes/pengasuh/skrining'))
-fastify.register(require('./routes/pengasuh/edukasi'))
-fastify.register(require('./routes/pengasuh/psikolog'))
-fastify.register(require('./routes/pengasuh/monitoring'))
-fastify.register(require('./routes/pengasuh/dashboard'))
-
-const PORT = process.env.PORT || 3001
-
-fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
-  if (err) {
-    fastify.log.error(err)
+async function start() {
+  try {
+    const app = await buildApp()
+    const port = Number(process.env.PORT) || 3001
+    await app.listen({ port, host: '0.0.0.0' })
+  } catch (error) {
+    console.error('FATAL: Failed to start GrowWell backend.', error)
     process.exit(1)
   }
-  console.log(`Server running on port ${PORT}`)
-})
+}
+
+start()

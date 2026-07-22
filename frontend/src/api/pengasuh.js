@@ -21,6 +21,10 @@ export function getPertanyaan(idSkala) {
   return client.get('/pengasuh/pertanyaan', { params }).then((r) => r.data)
 }
 
+export function getScreeningForm() {
+  return client.get('/pengasuh/screening-form').then((r) => r.data)
+}
+
 
 export function getScreenings(anakId) {
   return client.get(`/pengasuh/skrining/${anakId}`).then((r) => r.data)

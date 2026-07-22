@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { mockAnak, mockSkrining } from '../../data/mockData'
 import { calculateAge } from '../../lib/scoring'
 import * as api from '../../api/pengasuh'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
@@ -12,7 +11,7 @@ import SearchBar from '../../components/ui/SearchBar'
 import { formatDate, getCategoryColor } from '../../lib/utils'
 
 export default function MonitoringSelectPage() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -39,10 +38,6 @@ export default function MonitoringSelectPage() {
                 }
               } catch (err) {
                 console.error('Failed to load screenings:', err)
-                const fallback = mockSkrining
-                  .filter((s) => s.anak_id === child.id)
-                  .sort((a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining))
-                if (fallback[0]) screeningsMap[child.id] = fallback[0]
               }
             })
           )
@@ -54,17 +49,9 @@ export default function MonitoringSelectPage() {
         }
       } catch (err) {
         console.error('Failed to load children:', err)
-        const childrenList = mockAnak
-        const screeningsMap = {}
-        childrenList.forEach((child) => {
-          const fallback = mockSkrining
-            .filter((s) => s.anak_id === child.id)
-            .sort((a, b) => new Date(b.tanggal_skrining) - new Date(a.tanggal_skrining))
-          if (fallback[0]) screeningsMap[child.id] = fallback[0]
-        })
         if (!cancelled) {
-          setChildren(childrenList)
-          setLastScreenings(screeningsMap)
+          setChildren([])
+          setLastScreenings({})
         }
       }
     }

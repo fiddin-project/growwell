@@ -3,11 +3,13 @@ const { buildApp, signToken } = require('../../../tests/helper')
 let app
 let adminToken
 let pengasuhToken
+let pengasuhLainToken
 
 beforeAll(async () => {
   app = await buildApp()
   adminToken = signToken(app, { id: 1, role: 'ADMIN', nama_lengkap: 'Administrator' })
   pengasuhToken = signToken(app, { id: 2, role: 'PENGASUH', nama_lengkap: 'Siti Nurhaliza' })
+  pengasuhLainToken = signToken(app, { id: 3, role: 'PENGASUH', nama_lengkap: 'Budi Santoso' })
 })
 
 afterAll(async () => {
@@ -15,23 +17,30 @@ afterAll(async () => {
 })
 
 describe('Security: IDOR Protection', () => {
-  it('Pengasuh cannot update other pengasuh child', async () => {
-    const res = await app.inject({
-      method: 'PUT',
-      url: '/api/pengasuh/anak/1',
+  it('creator metadata does not grant ownership privileges', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/pengasuh/anak',
       headers: { authorization: `Bearer ${pengasuhToken}` },
-      payload: { nama: 'Hacked Name' },
+      payload: { nama: 'Shared Child', tanggal_lahir: '2020-01-01', jenis_kelamin: 'L' },
     })
-    expect([403, 404]).toContain(res.statusCode)
-  })
+    expect(created.statusCode).toBe(201)
+    const childId = created.json().id
 
-  it('Pengasuh cannot delete other pengasuh child', async () => {
-    const res = await app.inject({
-      method: 'DELETE',
-      url: '/api/pengasuh/anak/1',
-      headers: { authorization: `Bearer ${pengasuhToken}` },
+    const updated = await app.inject({
+      method: 'PUT',
+      url: `/api/pengasuh/anak/${childId}`,
+      headers: { authorization: `Bearer ${pengasuhLainToken}` },
+      payload: { nama: 'Shared Child Updated' },
     })
-    expect([403, 404]).toContain(res.statusCode)
+    expect(updated.statusCode).toBe(200)
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/api/pengasuh/anak/${childId}`,
+      headers: { authorization: `Bearer ${pengasuhLainToken}` },
+    })
+    expect(removed.statusCode).toBe(200)
   })
 
   it('Pengasuh cannot access other pengasuh screening', async () => {

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { mockPsikolog } from '../../data/mockData'
 import * as api from '../../api/pengasuh'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import { MessageCircle, MessageCircleMore } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
+import toast from 'react-hot-toast'
 import SearchBar from '../../components/ui/SearchBar'
 
 export default function PsikologPage() {
@@ -24,12 +24,13 @@ export default function PsikologPage() {
         }
       } catch (err) {
         console.error('Failed to load psychologists:', err)
-        if (!cancelled) setPsikologList(mockPsikolog)
+        if (!cancelled) setPsikologList([])
+        toast.error(t('toast_error_api'))
       }
     }
     fetchPsikolog().finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [t])
 
   const getSpecialization = (item) =>
     i18n.language === 'id' ? item.spesialisasi : item.spesialisasi_en

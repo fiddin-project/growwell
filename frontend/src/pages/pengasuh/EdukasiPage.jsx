@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { mockEdukasi } from '../../data/mockData'
 import * as api from '../../api/pengasuh'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import { FileText, Video, ExternalLink, BookOpen, Image as ImageIcon } from 'lucide-react'
-import toast from 'react-hot-toast'
 import PageHeader from '../../components/ui/PageHeader'
 import SearchBar from '../../components/ui/SearchBar'
+import toast from 'react-hot-toast'
 
 const FILTERS = [
   { key: 'all', label: 'edu_filter_all' },
@@ -33,12 +32,13 @@ export default function EdukasiPage() {
         }
       } catch (err) {
         console.error('Failed to load education:', err)
-        if (!cancelled) setEdukasiList(mockEdukasi)
+        if (!cancelled) setEdukasiList([])
+        toast.error(t('toast_error_api'))
       }
     }
     fetchEdukasi().finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [t])
 
   const filteredEdukasi = edukasiList.filter((e) => {
     const matchFilter = filter === 'all' || e.tipe === filter
@@ -50,11 +50,11 @@ export default function EdukasiPage() {
   const getDesc = (item) => (i18n.language === 'id' ? item.deskripsi : item.deskripsi_en)
 
   const handlePdfClick = (item) => {
-    window.open(item.url_atau_file, '_blank', 'noopener,noreferrer')
+    window.open(item.asset_url || item.url_atau_file, '_blank', 'noopener,noreferrer')
   }
 
   const handleYoutubeClick = (item) => {
-    window.open(item.url_atau_file, '_blank', 'noopener,noreferrer')
+    window.open(item.asset_url || item.url_atau_file, '_blank', 'noopener,noreferrer')
   }
 
   const getTypeMeta = (tipe) => {
@@ -105,7 +105,7 @@ export default function EdukasiPage() {
             <div key={item.id} className="card flex flex-col">
               {item.tipe === 'gambar' && (
                 <div className="mb-3 overflow-hidden rounded-xl border border-outline-variant/40 bg-surface-container-low">
-                  <img src={item.url_atau_file} alt={getTitle(item)} className="h-40 w-full object-cover" />
+                  <img src={item.asset_url || item.url_atau_file} alt={getTitle(item)} className="h-40 w-full object-cover" />
                 </div>
               )}
               <div className="flex items-start justify-between mb-3">

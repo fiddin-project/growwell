@@ -8,15 +8,14 @@ async function routes(fastify, opts) {
   fastify.get('/api/pengasuh/anak', { preHandler: [authenticate, requireRole(ROLES.PENGASUH)] }, async (req, reply) => {
     try {
       const anak = await prisma.anak.findMany({
-        where: {
-          OR: [
-            { created_by: req.user.id },
-            { created_by_admin: true }
-          ]
+        include: {
+          pembuat: {
+            select: { id: true, nama_lengkap: true, role: true },
+          },
         },
-        orderBy: { created_at: 'desc' },
+        orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
       })
-      return reply.send(anak)
+      return reply.send(anak.map(({ pembuat, ...item }) => ({ ...item, creator: pembuat })))
     } catch (err) {
       return reply.status(500).send({ error: 'Gagal mengambil data anak' })
     }
@@ -63,12 +62,6 @@ async function routes(fastify, opts) {
       if (!existing) {
         return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
       }
-      if (existing.created_by !== req.user.id) {
-        return reply.status(403).send({ error: 'Akses ditolak' })
-      }
-
-
-
       const updateData = {}
       if (nama !== undefined) updateData.nama = nama
       if (tanggal_lahir !== undefined) updateData.tanggal_lahir = new Date(tanggal_lahir)
@@ -98,10 +91,6 @@ async function routes(fastify, opts) {
       if (!existing) {
         return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
       }
-      if (existing.created_by !== req.user.id) {
-        return reply.status(403).send({ error: 'Akses ditolak' })
-      }
-
       const skriningCount = await prisma.skrining.count({ where: { anak_id: parseInt(id) } })
       if (skriningCount > 0) {
         return reply.status(400).send({ error: 'Tidak dapat menghapus data anak yang sudah memiliki riwayat skrining' })

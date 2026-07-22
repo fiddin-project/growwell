@@ -7,10 +7,12 @@ async function routes(fastify, opts) {
   fastify.get('/api/pengasuh/dashboard', { preHandler: [authenticate, requireRole(ROLES.PENGASUH)] }, async (req, reply) => {
     try {
       const recentScreenings = await prisma.skrining.findMany({
-        where: { pengasuh_id: req.user.id },
         include: {
           anak: {
             select: { id: true, nama: true },
+          },
+          pengasuh: {
+            select: { id: true, nama_lengkap: true },
           },
         },
         orderBy: { tanggal_skrining: 'desc' },
@@ -23,6 +25,7 @@ async function routes(fastify, opts) {
         tanggal_skrining: s.tanggal_skrining,
         total_score: s.total_score,
         kategori_total: s.kategori_total,
+        performer: s.pengasuh,
         anak: {
           id: s.anak.id,
           nama: s.anak.nama,

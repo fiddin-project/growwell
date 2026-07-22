@@ -1,7 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
-import { mockPertanyaan, mockAnak } from '../../../data/mockData'
 import { calculateAge } from '../../../lib/scoring'
 import * as api from '../../../api/pengasuh'
 import Button from '../../../components/ui/Button'
@@ -22,13 +21,15 @@ export default function QuestionnairePage() {
   const [loading, setLoading] = useState(false)
   const [questionsLoading, setQuestionsLoading] = useState(true)
   const [questions, setQuestions] = useState([])
+  const [instrumentRevision, setInstrumentRevision] = useState(null)
   const [children, setChildren] = useState([])
   const [childLoading, setChildLoading] = useState(true)
+  const submissionIdRef = useRef(null)
 
   const child = useMemo(() => {
     const fromApi = children.find((a) => a.id === parseInt(childId))
     if (fromApi) return fromApi
-    return mockAnak.find((a) => a.id === parseInt(childId))
+    return null
   }, [childId, children])
 
   const age = child ? calculateAge(child.tanggal_lahir) : 0
@@ -37,19 +38,23 @@ export default function QuestionnairePage() {
     let cancelled = false
     async function fetchQuestions() {
       try {
-        const data = await api.getPertanyaan()
-        if (Array.isArray(data)) {
-          if (!cancelled) setQuestions(data)
+        const data = await api.getScreeningForm()
+        if (Array.isArray(data?.questions)) {
+          if (!cancelled) {
+            setQuestions(data.questions)
+            setInstrumentRevision(data.instrument_revision)
+          }
           return
         }
       } catch (err) {
         console.error('Failed to load questions:', err)
-        if (!cancelled) setQuestions(mockPertanyaan)
+        if (!cancelled) setQuestions([])
+        toast.error(t('toast_error_api'))
       }
     }
     fetchQuestions().finally(() => { if (!cancelled) setQuestionsLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -59,12 +64,13 @@ export default function QuestionnairePage() {
         if (Array.isArray(data) && !cancelled) setChildren(data)
       } catch (err) {
         console.error('Failed to load children:', err)
-        if (!cancelled) setChildren(mockAnak)
+        if (!cancelled) setChildren([])
+        toast.error(t('toast_error_api'))
       }
     }
     fetchChildren().finally(() => { if (!cancelled) setChildLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [t])
 
   const answeredCount = Object.keys(answers).length
   const totalQuestions = questions.length
@@ -86,8 +92,11 @@ export default function QuestionnairePage() {
 
       const payload = {
         anak_id: parseInt(childId),
+        client_submission_id: submissionIdRef.current || crypto.randomUUID(),
+        instrument_revision: instrumentRevision,
         jawaban: jawabanList,
       }
+      submissionIdRef.current = payload.client_submission_id
 
       const result = await api.submitScreening(payload)
       toast.success(t('toast_created'))

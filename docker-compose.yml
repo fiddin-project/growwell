@@ -30,7 +30,12 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3001
       UPLOAD_DIR: ./uploads
-      ALLOWED_ORIGINS: http://43.129.56.43
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      ACCESS_TOKEN_TTL_SECONDS: 900
+      REFRESH_TOKEN_TTL_DAYS: 30
+      COOKIE_SECURE: "true"
+      ENABLE_API_DOCS: "false"
       NODE_ENV: production
     volumes:
       - uploads:/app/uploads
