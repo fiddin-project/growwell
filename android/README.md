@@ -1,6 +1,32 @@
 # GrowWell Android Native
 
-Aplikasi Android native untuk peran `PENGASUH`, dibuat dengan Kotlin dan Jetpack Compose. Admin tetap memakai aplikasi web. Semua pengasuh melihat data anak global; identitas pembuat hanya ditampilkan sebagai audit.
+Aplikasi Android native untuk peran `PENGASUH`, dibuat dengan Kotlin dan Jetpack Compose. Admin tetap memakai aplikasi web. Semua pengasuh melihat data anak dan riwayat screening global; `created_by` serta `pengasuh_id` tetap dipertahankan backend sebagai audit metadata dan bukan pembatas akses.
+
+## Fitur utama
+
+- Login pengasuh, restore session, rotating refresh token, dan logout terkonfirmasi.
+- Dashboard dengan kartu Total Children dan Recent Activity yang membuka menu terkait.
+- Daftar anak, pencarian, tambah/edit dengan date picker, serta penghapusan dengan history safeguard.
+- Kuesioner SDQ dengan confirmation, floating progress, draft lokal, dan hasil resmi dari server.
+- Hasil screening berupa total score, kategori, breakdown per skala, rekomendasi, dan riwayat profesional.
+- Monitoring anak dengan grafik tren dan detail screening yang dapat diperluas.
+- Materi edukasi dan akses kontak psikolog melalui WhatsApp.
+- Bahasa Indonesia dan English.
+- Cached read, indikator offline, retry, dan antrean submission screening melalui WorkManager.
+
+Bottom navigation berisi Home, Children, Screening, Monitoring, dan Education. Menu bantuan psikolog tersedia melalui ikon Help pada topbar. Launcher, splash, loading state, dan login memakai ikon Eco yang sama.
+
+## Design system
+
+- Primary teal: `#004349`
+- Secondary teal: `#0D5C63`
+- Background: `#F9F9FF`
+- Surface: putih
+- Font: Plus Jakarta Sans, dibundel lokal pada `app/src/main/res/font/`
+- Spacing horizontal layar: `24dp`
+- Heading halaman: `28sp`
+
+Lisensi Plus Jakarta Sans disimpan pada `PLUS_JAKARTA_SANS_LICENSE.txt`.
 
 ## Build debug
 
@@ -13,6 +39,12 @@ $env:ANDROID_HOME = 'C:\path\to\android-sdk'
 ```
 
 APK dibuat di `app/build/outputs/apk/debug/app-debug.apk`.
+
+Gate lokal lengkap:
+
+```powershell
+.\gradlew.bat testDebugUnitTest lintDebug assembleDebug assembleRelease
+```
 
 ## Bahasa aplikasi
 
@@ -39,6 +71,27 @@ HTTPS di VPS tetap ditangani reverse proxy/TLS. Sisi Android hanya perlu menggun
 - Access token hanya disimpan di memori.
 - Refresh token Android dikirim pada body sesuai kontrak API, dienkripsi AES-GCM dengan kunci pada Android Keystore, dan dirotasi setiap refresh.
 - Respons `401` memicu satu refresh tersinkronisasi lalu request diulang satu kali.
+- Gangguan jaringan atau error server sementara tidak menghapus refresh session.
+- Cached user minimal dapat memulihkan UI ketika perangkat offline.
 - Logout merevoke refresh session di server dan menghapus token lokal.
 
 Jangan menyimpan signing key atau credential API di repository.
+
+## Cache, draft, dan antrean offline
+
+Room database versi 2 menyimpan profil anak, payload dashboard/edukasi/psikolog/form/monitoring, draft jawaban, dan pending screening. Migrasi `1 -> 2` bersifat eksplisit agar upgrade aplikasi tidak menghapus data lokal.
+
+Screening offline memakai UUID `client_submission_id`. Repository menyimpan request sebelum WorkManager menjalankan unique work. Setelah sinkronisasi berhasil, ViewModel mengambil hasil resmi dari backend. Submission terminal yang gagal dapat ditinjau kembali tanpa menghapus draft jawaban.
+
+Logout membersihkan token, cache, draft, serta pending data lokal milik session.
+
+## Release
+
+Release build hanya menerima URL API HTTPS yang diakhiri `/`:
+
+```powershell
+.\gradlew.bat assembleRelease -PGROWWELL_API_BASE_URL=https://www.growwell.id/api/
+.\gradlew.bat bundleRelease -PGROWWELL_API_BASE_URL=https://www.growwell.id/api/
+```
+
+`assembleRelease` menghasilkan `app-release-unsigned.apk`. Signing key, password, dan signed artifact harus dibuat melalui konfigurasi release/pipeline di luar repository.

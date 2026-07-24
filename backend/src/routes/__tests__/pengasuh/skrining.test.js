@@ -224,6 +224,8 @@ describe('screening form integrity and idempotency', () => {
       headers: { authorization: `Bearer ${pengasuhToken}` }, payload,
     })
     expect(created.statusCode).toBe(201)
+    expect(created.json().client_submission_id).toBe(clientSubmissionId)
+    expect(created.json().tanggal_skrining).toBeTruthy()
 
     const replay = await app.inject({
       method: 'POST', url: '/api/pengasuh/skrining',
@@ -231,6 +233,8 @@ describe('screening form integrity and idempotency', () => {
     })
     expect(replay.statusCode).toBe(200)
     expect(replay.json().id).toBe(created.json().id)
+    expect(replay.json().client_submission_id).toBe(clientSubmissionId)
+    expect(replay.json().tanggal_skrining).toBe(created.json().tanggal_skrining)
     expect(replay.json().replayed).toBe(true)
 
     const changedPayload = structuredClone(payload)

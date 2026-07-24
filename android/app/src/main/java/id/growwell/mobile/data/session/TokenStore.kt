@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import id.growwell.mobile.data.remote.dto.UserDto
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -22,7 +23,7 @@ class TokenStore(context: Context) {
     fun refreshToken(): String? {
         val stored = preferences.getString(KEY_REFRESH_TOKEN, null) ?: return null
         return runCatching { decrypt(stored) }.getOrElse {
-            preferences.edit().remove(KEY_REFRESH_TOKEN).apply()
+            clear()
             null
         }
     }
@@ -30,15 +31,37 @@ class TokenStore(context: Context) {
     fun hasSession(): Boolean = refreshToken() != null
 
     @Synchronized
-    fun save(access: String, refresh: String?) {
+    fun save(access: String, refresh: String?, user: UserDto? = null) {
         accessToken = access
-        if (refresh != null) preferences.edit().putString(KEY_REFRESH_TOKEN, encrypt(refresh)).apply()
+        preferences.edit().apply {
+            if (refresh != null) putString(KEY_REFRESH_TOKEN, encrypt(refresh))
+            if (user != null) {
+                putInt(KEY_USER_ID, user.id)
+                putString(KEY_USERNAME, user.username)
+                putString(KEY_FULL_NAME, user.fullName)
+                putString(KEY_ROLE, user.role)
+            }
+        }.apply()
+    }
+
+    fun cachedUser(): UserDto? {
+        if (!preferences.contains(KEY_USER_ID)) return null
+        val username = preferences.getString(KEY_USERNAME, null) ?: return null
+        val fullName = preferences.getString(KEY_FULL_NAME, null) ?: return null
+        val role = preferences.getString(KEY_ROLE, null) ?: return null
+        return UserDto(preferences.getInt(KEY_USER_ID, 0), username, fullName, role)
     }
 
     @Synchronized
     fun clear() {
         accessToken = null
-        preferences.edit().remove(KEY_REFRESH_TOKEN).apply()
+        preferences.edit()
+            .remove(KEY_REFRESH_TOKEN)
+            .remove(KEY_USER_ID)
+            .remove(KEY_USERNAME)
+            .remove(KEY_FULL_NAME)
+            .remove(KEY_ROLE)
+            .apply()
     }
 
     private fun encrypt(value: String): String {
@@ -78,6 +101,10 @@ class TokenStore(context: Context) {
         const val KEY_ALIAS = "growwell_refresh_token_v2"
         const val PREFERENCES_NAME = "growwell_keystore_session_v2"
         const val KEY_REFRESH_TOKEN = "refresh_token"
+        const val KEY_USER_ID = "user_id"
+        const val KEY_USERNAME = "username"
+        const val KEY_FULL_NAME = "full_name"
+        const val KEY_ROLE = "role"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
     }
 }

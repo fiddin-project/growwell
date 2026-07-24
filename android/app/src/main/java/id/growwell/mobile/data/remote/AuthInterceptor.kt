@@ -36,12 +36,17 @@ class RefreshAuthenticator(
             val refreshed = runCatching {
                 sessionApi.refreshBlocking(RefreshRequest(refreshToken = refresh)).execute()
             }.getOrNull()
-            val body = refreshed?.takeIf { it.isSuccessful }?.body()
+            if (refreshed == null) return null
+            if (!refreshed.isSuccessful) {
+                if (refreshed.code() == 401 || refreshed.code() == 403) tokenStore.clear()
+                return null
+            }
+            val body = refreshed.body()
             if (body == null) {
                 tokenStore.clear()
                 return null
             }
-            tokenStore.save(body.accessToken, body.refreshToken)
+            tokenStore.save(body.accessToken, body.refreshToken, body.user)
             return response.request.newBuilder().header("Authorization", "Bearer ${body.accessToken}").build()
         }
     }

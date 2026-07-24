@@ -3,6 +3,7 @@ const authenticate = require('../../middleware/authenticate')
 const requireRole = require('../../middleware/requireRole')
 const validateIdParam = require('../../middleware/validateIdParam')
 const ROLES = require('../../lib/roles')
+const { parseBirthDate } = require('../../lib/childValidation')
 
 async function routes(fastify, opts) {
   fastify.get('/api/pengasuh/anak', { preHandler: [authenticate, requireRole(ROLES.PENGASUH)] }, async (req, reply) => {
@@ -36,11 +37,15 @@ async function routes(fastify, opts) {
       if (!['L', 'P'].includes(jenis_kelamin)) {
         return reply.status(400).send({ error: 'jenis_kelamin harus L atau P' })
       }
+      const birthDate = parseBirthDate(tanggal_lahir)
+      if (!birthDate) {
+        return reply.status(400).send({ error: 'tanggal_lahir tidak valid' })
+      }
 
       const anak = await prisma.anak.create({
         data: {
           nama,
-          tanggal_lahir: new Date(tanggal_lahir),
+          tanggal_lahir: birthDate,
           jenis_kelamin,
           created_by: req.user.id,
           created_by_admin: false,
@@ -63,8 +68,19 @@ async function routes(fastify, opts) {
         return reply.status(404).send({ error: 'Data anak tidak ditemukan' })
       }
       const updateData = {}
-      if (nama !== undefined) updateData.nama = nama
-      if (tanggal_lahir !== undefined) updateData.tanggal_lahir = new Date(tanggal_lahir)
+      if (nama !== undefined) {
+        if (typeof nama !== 'string' || nama.length < 1 || nama.length > 100) {
+          return reply.status(400).send({ error: 'nama harus 1-100 karakter' })
+        }
+        updateData.nama = nama
+      }
+      if (tanggal_lahir !== undefined) {
+        const birthDate = parseBirthDate(tanggal_lahir)
+        if (!birthDate) {
+          return reply.status(400).send({ error: 'tanggal_lahir tidak valid' })
+        }
+        updateData.tanggal_lahir = birthDate
+      }
       if (jenis_kelamin !== undefined) {
         if (!['L', 'P'].includes(jenis_kelamin)) {
           return reply.status(400).send({ error: 'jenis_kelamin harus L atau P' })

@@ -1,8 +1,10 @@
 # GrowWell — Execution Plan for API Hardening and Native Android
 
-Status: approved implementation blueprint
+Status: implemented; retained as architecture, security, and regression reference
 Repository baseline: React/Vite web, Fastify 5 backend, Prisma 6, MySQL 8
 Primary goal: add a native Android application for the `PENGASUH` role without removing or regressing any existing web function.
+
+Implementation note (2026-07): the native caregiver journey, rotating Android sessions, Room cache/drafts, idempotent WorkManager submission queue, bilingual UI, monitoring, education, and psychologist contact flow are implemented. Use the phase gates below as regression requirements for future changes rather than as an indication that the Android client is still unbuilt.
 
 This document is intentionally explicit. An implementation agent must follow the phases in order, complete the tests and acceptance criteria for one phase, and only then continue to the next phase. Do not combine phases into a large rewrite.
 

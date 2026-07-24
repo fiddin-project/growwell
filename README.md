@@ -15,7 +15,7 @@ GrowWell adalah aplikasi web dan Android native untuk skrining awal kesehatan me
 | Backend | Node.js, Fastify, JWT, Prisma ORM |
 | Database | MySQL 8 |
 | Android | Kotlin, Jetpack Compose, Retrofit/OkHttp, Room, WorkManager, Android Keystore |
-| Testing | Vitest, Testing Library |
+| Testing | Vitest, Testing Library, JUnit, Android Lint |
 | Deployment | Docker Compose, Nginx |
 
 ## Struktur proyek
@@ -75,6 +75,8 @@ Android Native
   v
 Fastify -> Prisma ORM -> MySQL 8
 ```
+
+Aplikasi Android ditujukan khusus untuk akun `PENGASUH`; akun `ADMIN` tetap menggunakan web. Android mempertahankan sesi dengan refresh token terenkripsi, menyediakan cached read ketika offline, menyimpan draft kuesioner, dan mengantrekan submission screening melalui WorkManager menggunakan `client_submission_id` agar pengiriman ulang tetap idempotent.
 
 Frontend menyimpan access token berumur pendek hanya di memori. Refresh token web dikirim sebagai cookie `HttpOnly`, dirotasi setiap kali dipakai, dan dapat dicabut melalui logout. Axios menyertakan access token pada request API; backend memverifikasi autentikasi dan peran sebelum menjalankan route admin atau pengasuh.
 
@@ -175,6 +177,8 @@ cd android
 ```
 
 APK debug tersedia di `android/app/build/outputs/apk/debug/app-debug.apk`. Dokumentasi lebih lengkap tersedia di [`android/README.md`](android/README.md).
+
+Antarmuka Android menggunakan Plus Jakarta Sans dengan warna utama teal `#004349` dan `#0D5C63`. Launcher, splash screen, loading screen, dan login menggunakan ikon Eco yang sama. Lima menu utama berada pada bottom navigation; bantuan psikolog tersedia melalui tombol Help di topbar.
 
 ## Menjalankan dengan Docker Compose
 
@@ -279,9 +283,11 @@ Android:
 
 ```powershell
 cd android
-.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
 .\gradlew.bat :app:bundleRelease -PGROWWELL_API_BASE_URL=https://www.growwell.id/api/
 ```
+
+`assembleRelease` menghasilkan APK release unsigned untuk verifikasi build. Distribusi production harus menggunakan keystore yang dikelola di luar repository atau menghasilkan signed Android App Bundle melalui pipeline release.
 
 ## Progressive Web App (PWA)
 

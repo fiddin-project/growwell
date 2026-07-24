@@ -56,6 +56,11 @@ data class DashboardDto(
     val recentScreenings: List<ScreeningDto> = emptyList(),
 )
 
+data class ScreeningChildDto(
+    val id: Int,
+    @SerializedName("nama") val fullName: String,
+)
+
 data class ScaleDto(
     @SerializedName("id_skala") val id: String,
     @SerializedName("nama_skala") val name: String,
@@ -90,10 +95,12 @@ data class ScreeningRequest(
 data class ScreeningDto(
     val id: Int,
     @SerializedName("anak_id") val childId: Int?,
+    @SerializedName("client_submission_id") val clientSubmissionId: String? = null,
     @SerializedName("total_score") val totalScore: Int?,
     @SerializedName("kategori_total") val category: String?,
     @SerializedName("tanggal_skrining") val createdAt: String?,
     val performer: CreatorDto? = null,
+    @SerializedName("anak") val child: ScreeningChildDto? = null,
     @SerializedName("per_skala") val perScale: List<ScaleResultDto> = emptyList(),
 )
 
@@ -131,8 +138,15 @@ data class ThresholdDto(
 )
 
 data class MonitoringDto(
+    @SerializedName("anak") val child: MonitoringChildDto?,
     @SerializedName("threshold_total") val thresholdTotal: ThresholdDto?,
     val riwayat: List<ScreeningDto> = emptyList(),
+)
+
+data class MonitoringChildDto(
+    @SerializedName("nama") val fullName: String,
+    @SerializedName("tanggal_lahir") val birthDate: String,
+    @SerializedName("jenis_kelamin") val gender: String,
 )
 
 data class ApiErrorDto(

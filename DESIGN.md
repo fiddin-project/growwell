@@ -1,9 +1,9 @@
 ---
 name: GrowWell
 colors:
-  surface: '#f7fffe'
+  surface: '#f9f9ff'
   surface-dim: '#c4cec9'
-  surface-bright: '#f7fffe'
+  surface-bright: '#f9f9ff'
   surface-container-lowest: '#ffffff'
   surface-container-low: '#f1f8f7'
   surface-container: '#ebf2f1'
@@ -15,11 +15,11 @@ colors:
   inverse-on-surface: '#ecf2f0'
   outline: '#6f7977'
   outline-variant: '#bfc9c7'
-  surface-tint: '#00696e'
-  primary: '#004d50'
+  surface-tint: '#0d5c63'
+  primary: '#004349'
   on-primary: '#ffffff'
-  primary-container: '#00696e'
-  on-primary-container: '#70f7ff'
+  primary-container: '#0d5c63'
+  on-primary-container: '#ffffff'
   inverse-primary: '#008489'
   secondary: '#4a6363'
   on-secondary: '#ffffff'
@@ -45,7 +45,7 @@ colors:
   tertiary-fixed-dim: '#96afcf'
   on-tertiary-fixed: '#061d36'
   on-tertiary-fixed-variant: '#354c66'
-  background: '#f7fffe'
+  background: '#f9f9ff'
   on-background: '#171d1c'
   surface-variant: '#dae5e3'
 typography:
@@ -122,21 +122,21 @@ GrowWell is a child health monitoring platform designed for healthcare professio
 The visual style is **Corporate / Modern** with modular components. It emphasizes spacious layouts, soft geometry, and systematic data visualization. The emotional response is calm assurance — healthcare providers trust that data is organized and the platform is supportive.
 
 ## Colors
-The palette is rooted in a **Deep Teal** (`#004d50`) as the primary brand color, chosen for its association with health, stability, calm, and professional maturity. The entire system uses a **teal-only gradient family** at 135 degrees for depth and emphasis.
+The palette is rooted in **Deep Teal** (`#004349`) with **Supporting Teal** (`#0D5C63`) as the primary brand family, chosen for its association with health, stability, calm, and professional maturity.
 
 - **Primary (Deep Teal):** Used for key actions, navigation states, and brand identifiers.
-- **Primary Container:** `#00696e` for filled backgrounds on buttons, badges, and stat cards.
-- **Surface (Mint Tint):** A very soft neutral-green background (`#f7fffe`) to reduce eye strain during long administrative sessions.
+- **Primary Container:** `#0D5C63` for filled backgrounds on buttons, badges, and stat cards.
+- **Surface:** A very soft cool background (`#F9F9FF`) to reduce eye strain during long sessions.
 - **Neutral Surface:** Cards and containers use `#ffffff` with subtle teal-tinted borders (`rgba(0,67,73,0.08)`).
 - **Functional Grays:** A cool-toned scale for text and borders to maintain high accessibility and professional distance.
 
 ### Gradient System
 A **subtle, minimal gradient** (135deg, teal family only) is applied to high-impact surfaces:
 - **Page Headers:** `linear-gradient(135deg, #e0f5f5 0%, #ccf0ed 50%, #b8ebe8 100%)` — subtle background wash.
-- **Primary Buttons:** `linear-gradient(135deg, #00696e, #00555a)` — very subtle darkening for depth.
+- **Primary Buttons:** `linear-gradient(135deg, #004349, #0D5C63)` — very subtle lightening for depth.
 - **Stat Cards:** Left accent border `rgba(0,67,73,0.12)` with teal-tinted background.
-- **Sidebar:** `linear-gradient(180deg, #004d50 0%, #003a3d 100%)` — deep teal foundation.
-- **Login Page:** Full-page `linear-gradient(135deg, #004d50 0%, #003a3d 50%, #00282b 100%)`.
+- **Sidebar:** `linear-gradient(180deg, #004349 0%, #0D5C63 100%)` — deep teal foundation.
+- **Login Page:** Uses the cool `#F9F9FF` surface with teal brand elements and white form cards.
 - **Pagination:** Active page uses primary teal fill.
 
 Gradients are **not** applied to tables, modals, inputs, or low-emphasis surfaces.
@@ -155,14 +155,14 @@ The layout follows a **Fixed Grid** philosophy within a maximum container width 
 
 - **Desktop:** A 12-column grid with 24px gutters. The sidebar is fixed at 280px (collapsible to 64px icon-only mode) for a consistent navigation anchor.
 - **Tablet:** Transitions to an 8-column grid. The sidebar collapses to a hamburger menu.
-- **Mobile:** A single-column flow with 16px margins.
+- **Mobile:** A single-column flow with 24px horizontal margins.
 
 The spacing rhythm is built on a 4px baseline, defaulting to generous 24px (md) padding for containers to reinforce the spacious and clean brand personality.
 
 ## Elevation & Depth
 Depth is conveyed through **Tonal Layers** and **Ambient Shadows**. The system avoids harsh borders in favor of soft differentiation.
 
-1. **Base Layer:** The light mint-tinted background (`#f7fffe`).
+1. **Base Layer:** The cool background (`#F9F9FF`).
 2. **Content Layer:** White cards (`#FFFFFF`) with:
    - Border: `1px solid rgba(0,67,73,0.08)` (subtle teal tint)
    - Shadow: `0 1px 3px rgba(0,67,73,0.04), 0 1px 2px rgba(0,67,73,0.06)`
@@ -226,7 +226,7 @@ Row-based lists feature:
 - Close on Escape key, backdrop click, or close button
 
 ### Navigation (Sidebar)
-- Deep teal gradient background (`180deg, #004d50 → #003a3d`)
+- Deep teal gradient background (`180deg, #004349 → #0D5C63`)
 - White text, icon + label layout
 - Collapsible to icon-only mode (64px)
 - Hover state: subtle white overlay

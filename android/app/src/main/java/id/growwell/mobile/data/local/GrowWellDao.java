@@ -12,11 +12,16 @@ public interface GrowWellDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) void saveChildren(List<CachedChild> children);
     @Query("DELETE FROM cached_children") void deleteChildren();
 
+    @Query("SELECT * FROM cached_payloads WHERE cacheKey = :key") CachedPayload cachedPayload(String key);
+    @Insert(onConflict = OnConflictStrategy.REPLACE) void saveCachedPayload(CachedPayload payload);
+    @Query("DELETE FROM cached_payloads") void clearCachedPayloads();
+
     @Query("SELECT * FROM screening_drafts WHERE childId = :childId") ScreeningDraft draft(int childId);
     @Insert(onConflict = OnConflictStrategy.REPLACE) void saveDraft(ScreeningDraft draft);
     @Query("DELETE FROM screening_drafts WHERE childId = :childId") void deleteDraft(int childId);
 
     @Query("SELECT * FROM pending_screenings WHERE submissionId = :id") PendingScreening pending(String id);
+    @Query("SELECT * FROM pending_screenings ORDER BY createdAt DESC LIMIT 1") PendingScreening latestPending();
     @Query("SELECT * FROM pending_screenings WHERE state IN ('PENDING', 'FAILED_RETRYABLE') ORDER BY createdAt") List<PendingScreening> pendingForSync();
     @Insert(onConflict = OnConflictStrategy.REPLACE) void savePending(PendingScreening pending);
     @Query("DELETE FROM pending_screenings WHERE submissionId = :id") void deletePending(String id);
@@ -28,5 +33,6 @@ public interface GrowWellDao {
         clearChildren();
         clearDrafts();
         clearPending();
+        clearCachedPayloads();
     }
 }

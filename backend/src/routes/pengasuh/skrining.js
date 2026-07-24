@@ -22,6 +22,8 @@ function storedScreeningResponse(screening, replayed = false) {
   return {
     id: screening.id,
     anak_id: screening.anak_id,
+    client_submission_id: screening.client_submission_id,
+    tanggal_skrining: screening.tanggal_skrining,
     total_score: screening.total_score,
     kategori_total: screening.kategori_total,
     instrument_revision: screening.instrument_revision,
@@ -259,6 +261,8 @@ async function routes(fastify, opts) {
         return {
           id: skrining.id,
           anak_id: skrining.anak_id,
+          client_submission_id: skrining.client_submission_id,
+          tanggal_skrining: skrining.tanggal_skrining,
           total_score: skrining.total_score,
           kategori_total: skrining.kategori_total,
           instrument_revision: screeningForm.instrument_revision,
